@@ -1,0 +1,9 @@
+# Make staff
+build/
+
+# Ignore compiled binaries
+*.o
+*.a
+
+# VSCODE
+.vscode
