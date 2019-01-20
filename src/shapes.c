@@ -2,12 +2,22 @@
 
 #include "shapes.h"
 
+//-------------------------------------------------------------------------------------------------
+// Shapes Variables Definition 
+//-------------------------------------------------------------------------------------------------
 static Texture2D texShapes = {0};
 static Rectangle recTexShapes = {0};
 
+//-------------------------------------------------------------------------------------------------
+// Transition Functions Declaration
+//-------------------------------------------------------------------------------------------------
 static Texture2D GetShapesTexture(void);
-static void DrawCirclePro(Vector2 center, float radius, Color color, int startAngleRadians, int endAngleRadians);
+static void DrawCirclePro(Vector2 center, float radius, Color color,
+                          int startAngleRadians, int endAngleRadians);
 
+//-------------------------------------------------------------------------------------------------
+// Transition Functions Definition
+//-------------------------------------------------------------------------------------------------
 void DrawRoundedRectangleRec(Rectangle rec, float radius, Color color)
 {
     Rectangle rec1, rec2;
@@ -16,14 +26,10 @@ void DrawRoundedRectangleRec(Rectangle rec, float radius, Color color)
      * the rounded corners.
      */
     if (rec.width < (radius * 2)) 
-    {
         rec.width = radius * 2;
-    }
 
     if (rec.height < (radius * 2)) 
-    {
         rec.height = radius * 2;
-    }
 
     /* Vertical rectangle */
     rec1.x = rec.x + radius;
@@ -69,7 +75,8 @@ static Texture2D GetShapesTexture(void)
 
 // Draw a color-filled circle (Vector version)
 // NOTE: On OpenGL 3.3 and ES2 we use QUADS to avoid drawing order issues (view rlglDraw)
-static void DrawCirclePro(Vector2 center, float radius, Color color, int startAngleRadians, int endAngleRadians)
+static void DrawCirclePro(Vector2 center, float radius, Color color,
+                          int startAngleRadians, int endAngleRadians)
 {
 #if defined(SUPPORT_QUADS_DRAW_MODE)
     if (rlCheckBufferLimit(RL_QUADS, 4*(36/2))) rlglDraw();
