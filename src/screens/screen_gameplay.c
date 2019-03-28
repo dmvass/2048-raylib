@@ -62,7 +62,7 @@ typedef Tile Grid[GRID_SIZE];  // Game grid type
 struct Game {
     unsigned int score;      // Current score value
     unsigned int best;       // Best score value
-    unsigned int bestValue;  // Highest tile value
+    unsigned int maxTile;    // Highest tile value
     unsigned int moves;      // Current moves counter
     
     bool win;                // Set true if tile 2048 was achieved
@@ -84,8 +84,8 @@ static bool moved;                  // Set true if tiles was moved
 static unsigned long moveTime;      // Move animation timer
 static unsigned long appearTime;    // Appear animation timer
 
-clock_t moveStartTime;
-clock_t appearStartTime;
+clock_t animationMovingBegin;
+clock_t animationAppearBegin;
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Frame Variables Definition
@@ -100,7 +100,7 @@ static int titleFontSize;
 static int scoreTextFontSize;
 static int scoreValueFontSize;
 static int bestTextFontSize;
-static int bestValueFontSize;
+static int maxTileFontSize;
 static int purposeFontSize;
 
 static const char *textTitle = "2048";
@@ -160,7 +160,7 @@ void InitGameplayScreen(void)
     best.width = (WIDTH - PADDING * 4) * 0.3;
     best.height = WIDTH * 0.15;
     bestTextFontSize = scoreTextFontSize;
-    bestValueFontSize = scoreValueFontSize;
+    maxTileFontSize = scoreValueFontSize;
 
     /* Define game purpose position */
     purpose.x = PADDING;
@@ -180,7 +180,7 @@ void InitGameplayScreen(void)
     saveDirPath = StrConcat(getenv("HOME"), SAVE_DIR);
     saveFilePath = StrConcat(saveDirPath, SAVE_FILE);
 
-    mkdir(StrConcat(getenv("HOME"), SAVE_DIR), S_IRWXU | S_IRGRP | S_IROTH);
+    mkdir(saveDirPath, S_IRWXU | S_IRGRP | S_IROTH);
     free(saveDirPath);
 
     TraceLog(LOG_DEBUG, "[GAME] Init game play screen");
@@ -193,28 +193,28 @@ static void HandleInput(void)
     {
         game.direction = DIRECT_RIGHT;
         animation = ANIMATION_MOVE;
-        moveStartTime = clock();
+        animationMovingBegin = clock();
     }
 
     if (IsKeyPressed(KEY_LEFT) && Move(-1, 0)) 
     {
         game.direction = DIRECT_LEFT;
         animation = ANIMATION_MOVE;
-        moveStartTime = clock();
+        animationMovingBegin = clock();
     }
 
     if (IsKeyPressed(KEY_UP) && Move(0, -1)) 
     {
         game.direction = DIRECT_UP;
         animation = ANIMATION_MOVE;
-        moveStartTime = clock();
+        animationMovingBegin = clock();
     }
 
     if (IsKeyPressed(KEY_DOWN) && Move(0, 1)) 
     {
         game.direction = DIRECT_DOWN;
         animation = ANIMATION_MOVE;
-        moveStartTime = clock();
+        animationMovingBegin = clock();
     }
 
     if (IsKeyPressed(KEY_ESCAPE)) 
@@ -231,12 +231,12 @@ void UpdateGameplayScreen(void)
         /* Update tiles move animation and add new tile to the grid.
          * Applies only if the grid tiles was moved.
          */
-        moveTime = ANIMATION_MOVING_STEP * (clock() - moveStartTime);
+        moveTime = ANIMATION_MOVING_STEP * (clock() - animationMovingBegin);
         if (moveTime > ANIMATION_MOVING_SIZE) 
         {
             moveTime = 0;
             animation = ANIMATION_APPEAR;
-            appearStartTime = clock();
+            animationAppearBegin = clock();
 
             AddTile();
         }
@@ -263,7 +263,7 @@ void UpdateGameplayScreen(void)
                  */
                 TransitionToScreen(SCREEN_GAME_OVER);
             }
-            else if (!game.win && game.bestValue == 11)
+            else if (!game.win && game.maxTile == 11)
             {
                 /* Check that game is won and display a specified screen,
                  * this screen should be displayed once when the best tile
@@ -276,7 +276,7 @@ void UpdateGameplayScreen(void)
             SaveGame();
         }
         else
-            appearTime = ANIMATION_APPEAR_STEP * (clock() - appearStartTime);
+            appearTime = ANIMATION_APPEAR_STEP * (clock() - animationAppearBegin);
     }
 }
 
@@ -308,7 +308,7 @@ void NewGame(void)
     animation = ANIMATION_NONE;
 
     game.score = 0;
-    game.bestValue = 0;
+    game.maxTile = 0;
     game.direction = DIRECT_NONE;
     game.win = false;
 
@@ -380,10 +380,10 @@ static void DrawBest(void)
     DrawText(buffer, x, y, bestTextFontSize, WHITE);
 
     /* Draw best value in the bottom */
-    x = best.x + (best.width * 0.5) - MeasureText(textBest, bestValueFontSize) * 0.5;
+    x = best.x + (best.width * 0.5) - MeasureText(textBest, maxTileFontSize) * 0.5;
     y = best.y + best.height * 0.1;
 
-    DrawText(textBest, x, y, bestValueFontSize, WHITE);
+    DrawText(textBest, x, y, maxTileFontSize, WHITE);
 }
 
 static void DrawPurpose(void)
@@ -598,8 +598,8 @@ static bool Move(int vx, int vy)
                 if (game.score > game.best)
                     game.best = game.score;
 
-                if (next->value > game.bestValue)
-                    game.bestValue = next->value;
+                if (next->value > game.maxTile)
+                    game.maxTile = next->value;
             }
             else if (farthest != tile)
             {

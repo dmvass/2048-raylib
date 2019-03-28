@@ -46,7 +46,7 @@ PROJECT_SOURCE_FILES ?= src/game.c \
                         src/screens/screen_gameplay.c \
                         src/screens/screen_gameover.c \
                         src/screens/screen_gamewin.c \
-                        src/screens/screen_gamemenu.c
+                        src/screens/screen_menu.c
 
 # Define all object files from source files
 OBJS = $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))
