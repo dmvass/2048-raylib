@@ -2,14 +2,13 @@
 #define SCREENS_H
 
 #include "../shapes.h"
-#include "../transition.h"
-
-#define WIDTH    500
-#define HEIGHT   750
-#define PADDING  (WIDTH * 0.08)
+#include "../utils.h"
 
 #define SIZE 4
 #define GRID_SIZE (SIZE * SIZE)
+
+#define COLOR_SCREEN_DEFAULT  CLITERAL{ 250, 248, 239, 255 }
+#define COLOR_TEXT_DEFAULT    CLITERAL{ 119, 110, 102, 255 }
 
 #define COLOR_2     CLITERAL{ 238, 228, 218, 255 }
 #define COLOR_4     CLITERAL{ 237, 224, 200, 255 }
@@ -25,23 +24,18 @@
 #define COLOR_4096  CLITERAL{ 237, 112,  46, 255 }
 #define COLOR_8192  CLITERAL{ 237,  76,  46, 255 }
 
-#define SCREEN_BACKGROUND_COLOR  CLITERAL{ 250, 248, 239, 255 }
-#define DEFAULT_TEXT_COLOR       CLITERAL{ 119, 110, 102, 255 }
-#define TILE_FONT_WHITE_COLOR    CLITERAL{ 249, 246, 242, 255 }
-#define TILE_FONT_GREY_COLOR     CLITERAL{ 119, 110, 102, 255 }
-#define GRID_BACKGROUND_COLOR    CLITERAL{ 186, 173, 161, 255 }
-#define CELL_BACKGROUND_COLOR    CLITERAL{ 204, 193, 181, 245 }
-#define BUTTON_COLOR             CLITERAL{ 164, 147, 127, 255 }
-#define BUTTON_ACTIVE_COLOR      COLOR_2048
-
 #define MAX_SCORE_BUFFER_SIZE  12
 
-enum {
-    SCREEN_GAMEPLAY,
-    SCREEN_GAME_WIN,
-    SCREEN_GAME_OVER,
-    SCREEN_GAME_MENU,
-} GameScreen;
+//----------------------------------------------------------------------------------
+// Types and Structures Definition
+//----------------------------------------------------------------------------------
+typedef enum GameScreen { GAME_PLAY, GAME_WIN, GAME_OVER, MENU} GameScreen;
+
+//----------------------------------------------------------------------------------
+// Global Variables Definition
+//----------------------------------------------------------------------------------
+GameScreen currentScreen;
+GameScreen nextScreen;
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Screen Functions Declaration
@@ -50,8 +44,11 @@ void InitGameplayScreen(void);
 void UpdateGameplayScreen(void);
 void DrawGameplayScreen(void);
 void UnloadGameplayScreen(void);
+
 void NewGame(void);
 int LoadGame(void);
+int MakeSaveDir(void);
+
 unsigned int GetScore(void);
 unsigned int GetMoves(void);
 
@@ -72,11 +69,11 @@ void DrawGameWinScreen(void);
 void UnloadGameWinScreen(void);
 
 //-------------------------------------------------------------------------------------------------
-// Game Menu Screen Functions Declaration
+// Menu Screen Functions Declaration
 //-------------------------------------------------------------------------------------------------
-void InitGameMenuScreen(void);
-void UpdateGameMenuScreen(void);
-void DrawGameMenuScreen(void);
-void UnloadGameMenuScreen(void);
+void InitMenuScreen(void);
+void UpdateMenuScreen(void);
+void DrawMenuScreen(void);
+void UnloadMenuScreen(void);
 
 #endif // SCREENS_H

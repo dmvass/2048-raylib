@@ -3,6 +3,8 @@
 #include "raylib.h"
 #include "screens.h"
 
+#define COLOR_SCORE_BG  CLITERAL{ 204, 193, 181, 245 }
+
 //-------------------------------------------------------------------------------------------------
 // Game Over Screen Variables Definition (local to this module)
 //-------------------------------------------------------------------------------------------------
@@ -29,90 +31,83 @@ static const char *textHelp  = "Press Enter to Try again";
 //-------------------------------------------------------------------------------------------------
 // Game Over Screen Local Functions Declaration
 //-------------------------------------------------------------------------------------------------
-static void DrawTitle(void);
 static void DrawScore(void);
 static void DrawMoves(void);
-static void DrawHelp(void);
 
 //-------------------------------------------------------------------------------------------------
 // Game Over Screen Functions Definition
 //-------------------------------------------------------------------------------------------------
 void InitGameOverScreen(void)
 {
-    /* Define title frame position and font size */
-    title.x = PADDING;
-    title.y = PADDING;
-    title.width = (WIDTH - PADDING * 2);
-    title.height = title.width * 0.25;
+    int width = GetScreenWidth();
+    int height = GetScreenHeight();
+
+    /* Define title */
+    title = (Rectangle){ width*0.08, height*0.1, width*0.84, height*0.15 };
     titleFontSize = title.height * 0.7;
 
-    /* Define score frame position and font size */
-    score.width = WIDTH * 0.4;
-    score.height = score.width * 0.5;
-    score.x = (WIDTH - score.width) * 0.5;
-    score.y = title.y + title.height + PADDING;
+    /* Define score */
+    score = (Rectangle){ width*0.3, height*0.3, width*0.4, height*0.15 };
     scoreTextFontSize = score.height * 0.25;
     scoreValueFontSize = score.height * 0.4;
     scoreBorderRadius = score.width * 0.05;
 
-    /* Define moves frame position and font size */
-    moves.x = score.x;
-    moves.y = score.y + score.height + PADDING;
-    moves.width = score.width;
-    moves.height = score.height;
+    /* Define moves */
+    moves = (Rectangle){ width*0.3, height*0.5, width*0.4, height*0.15 };
     movesTextFontSize = scoreTextFontSize;
     movesValueFontSize = scoreValueFontSize;
     movesBorderRadius = scoreBorderRadius;
 
     /* Define help text frame position and font size */
-    help.x = PADDING;
-    help.y = moves.y + moves.height + PADDING;
-    help.width = (WIDTH - PADDING * 2);
-    help.height = help.width * 0.4;
-    helpFontSize = help.height * 0.125;
+    help = (Rectangle){ width*0.08, height*0.8, width*0.84, height*0.05 };
+    helpFontSize = help.height * 0.7;
 
-    TraceLog(LOG_INFO, "[GAME] Init game over screen");
+    TraceLog(LOG_DEBUG, "Init game over screen");
 }
 
 void UpdateGameOverScreen(void)
 {
     if (IsKeyPressed(KEY_ENTER)) 
-    {
-        NewGame();
-        TransitionToScreen(SCREEN_GAMEPLAY);
-    }
+        nextScreen = GAME_PLAY;
 }
 
 void DrawGameOverScreen(void)
 {
-    ClearBackground(SCREEN_BACKGROUND_COLOR);
-    DrawTitle();
+    float x, y;
+
+    ClearBackground(COLOR_SCREEN_DEFAULT);
+
+    /* Draw title */
+    x = title.x + (title.width * 0.5) - MeasureText(textTitle, titleFontSize) * 0.5;
+    y = title.y + (title.height * 0.5) - (titleFontSize * 0.5);
+
+    DrawText(textTitle, x, y, titleFontSize, COLOR_TEXT_DEFAULT);
+
+    /* Draw score */
     DrawScore();
+
+    /* Draw moves */
     DrawMoves();
-    DrawHelp();
+
+    /* Draw help text */
+    x = help.x + (help.width * 0.5) - MeasureText(textHelp, helpFontSize) * 0.5;
+    y = help.y + (help.height * 0.5) - (helpFontSize * 0.5);
+
+    DrawText(textHelp, x, y, helpFontSize, COLOR_TEXT_DEFAULT);
 }
 
 void UnloadGameOverScreen(void)
 {
-    TraceLog(LOG_INFO, "[GAME] Unload game over screen");
+    TraceLog(LOG_DEBUG, "Unload game over screen");
 }
 
-static void DrawTitle(void)
-{
-    float x, y;
-
-    x = title.x + (title.width * 0.5) - MeasureText(textTitle, titleFontSize) * 0.5;
-    y = title.y + (title.height * 0.5) - (titleFontSize * 0.5);
-
-    DrawText(textTitle, x, y, titleFontSize, DEFAULT_TEXT_COLOR);
-}
 
 static void DrawScore(void)
 {
     float x, y;
     char buffer[MAX_SCORE_BUFFER_SIZE];
 
-    DrawRoundedRectangleRec(score, scoreBorderRadius, CELL_BACKGROUND_COLOR);
+    DrawRoundedRectangleRec(score, scoreBorderRadius, COLOR_SCORE_BG);
 
     /* Draw text in the top */
     x = score.x + (score.width * 0.5) - MeasureText(textScore, scoreTextFontSize) * 0.5;
@@ -133,7 +128,7 @@ static void DrawMoves(void)
     float x, y;
     char buffer[MAX_SCORE_BUFFER_SIZE];
 
-    DrawRoundedRectangleRec(moves, movesBorderRadius, CELL_BACKGROUND_COLOR);
+    DrawRoundedRectangleRec(moves, movesBorderRadius, COLOR_SCORE_BG);
 
     /* Draw text in the top */
     x = moves.x + (moves.width * 0.5) - MeasureText(textMoves, movesTextFontSize) * 0.5;
@@ -147,14 +142,4 @@ static void DrawMoves(void)
     y = moves.y + moves.height * 0.9 - movesValueFontSize;
 
     DrawText(buffer, x, y, movesValueFontSize, WHITE);
-}
-
-static void DrawHelp(void)
-{
-    float x, y;
-
-    x = help.x + (help.width * 0.5) - MeasureText(textHelp, helpFontSize) * 0.5;
-    y = help.y + (help.height * 0.5) - (helpFontSize * 0.5);
-
-    DrawText(textHelp, x, y, helpFontSize, DEFAULT_TEXT_COLOR);
 }

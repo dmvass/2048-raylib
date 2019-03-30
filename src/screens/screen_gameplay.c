@@ -1,26 +1,21 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <time.h>
 
 #include "raylib.h"
 #include "screens.h"
 
-#define GRID_WIDTH  (WIDTH - PADDING * 2)
-#define SPACING     (GRID_WIDTH * 0.03)  // Spacing size between tiles
-
 #define TILE_MAX_BUFFER_SIZE  12
-#define TILE_WIDTH            ((GRID_WIDTH - 5 * SPACING) / SIZE)
-#define TILE_FONT_SIZE        (TILE_WIDTH * 0.5)
-#define TILE_BORDER_RADIUS    (TILE_WIDTH * 0.05)
+#define TILE_MAX_COLOR_INDEX  12
+
+#define COLOR_GRID_BG     CLITERAL{ 186, 173, 161, 255 }
+#define COLOR_CELL_BG     CLITERAL{ 204, 193, 181, 245 }
+#define COLOR_TILE_WHITE  CLITERAL{ 249, 246, 242, 255 }
+#define COLOR_TILE_GREY   CLITERAL{ 119, 110, 102, 255 }
 
 #define MILISEC  0.000001
-
-#define ANIMATION_MOVING_SIZE  (TILE_WIDTH + SPACING)                      // Move animation duration in pixels
-#define ANIMATION_MOVING_STEP  ((ANIMATION_MOVING_SIZE / 0.15) * MILISEC)  // Move animation speed in pixels per miliseconds
-#define ANIMATION_APPEAR_SIZE  (SPACING * 0.5)                             // Appear animation duration in pixels
-#define ANIMATION_APPEAR_STEP  ((ANIMATION_APPEAR_SIZE / 0.05) * MILISEC)  // Appear animation speed in pixels per miliseconds
 
 #define SAVE_DIR   "/Library/Application Support/2048"
 #define SAVE_FILE  "/save.dat"
@@ -28,20 +23,6 @@
 //-------------------------------------------------------------------------------------------------
 // Gameplay Types and Structures Definition
 //-------------------------------------------------------------------------------------------------
-typedef enum {
-    DIRECT_NONE,
-    DIRECT_LEFT,
-    DIRECT_RIGHT,
-    DIRECT_UP,
-    DIRECT_DOWN,
-} Direction;
-
-static enum {
-    ANIMATION_NONE,
-    ANIMATION_MOVE,
-    ANIMATION_APPEAR,
-} animation;
-
 typedef struct {
     unsigned int x;
     unsigned int y;
@@ -57,19 +38,17 @@ typedef struct _Tile {
     struct _Tile *source;  // Pointer on a merged tile
 } Tile;
 
-typedef Tile Grid[GRID_SIZE];  // Game grid type
-
 struct Game {
     unsigned int score;      // Current score value
     unsigned int best;       // Best score value
     unsigned int maxTile;    // Highest tile value
     unsigned int moves;      // Current moves counter
-    
     bool win;                // Set true if tile 2048 was achieved
-
-    Grid grid;
-    Direction direction;     // Current game move direction
+    Tile grid[GRID_SIZE];    // Grid array
 };
+
+static enum { DIRECT_NONE, DIRECT_LEFT, DIRECT_RIGHT, DIRECT_UP, DIRECT_DOWN } MoveDirect;
+static enum { ANIMATION_NONE, ANIMATION_MOVE, ANIMATION_APPEAR } AnimationType;
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Variables Definition (local to this module)
@@ -79,28 +58,37 @@ static Color tileColors[] = {
     COLOR_256, COLOR_512, COLOR_1024, COLOR_2048, COLOR_4096, COLOR_8192
 };
 
-static struct Game game;            // A local game variable
-static bool moved;                  // Set true if tiles was moved
-static unsigned long moveTime;      // Move animation timer
-static unsigned long appearTime;    // Appear animation timer
+static struct Game game;  // A local game variable
+static bool moved;        // Is true if tiles was moved
 
-clock_t animationMovingBegin;
-clock_t animationAppearBegin;
+static float animationMoveDuration;
+static float animationMoveSpeed;
+static clock_t animationMoveBegin;
+static unsigned long moveTime;  // Move animation timer
 
-//-------------------------------------------------------------------------------------------------
-// Gameplay Frame Variables Definition
-//-------------------------------------------------------------------------------------------------
+static float animationAppearDuration;
+static float animationAppearSpeed;
+static clock_t animationAppearBegin;
+static unsigned long appearTime;  // Appear animation timer
+
+static char *saveDirPath;
+static char *saveFilePath;
+
 static Rectangle board;
 static Rectangle title;
 static Rectangle score;
 static Rectangle best;
 static Rectangle purpose;
 
+static int tileWidth;
+static int tileFontSize;
+static float tileBorderRadius;
+
+static int spacing;
+
 static int titleFontSize;
 static int scoreTextFontSize;
 static int scoreValueFontSize;
-static int bestTextFontSize;
-static int maxTileFontSize;
 static int purposeFontSize;
 
 static const char *textTitle = "2048";
@@ -108,160 +96,112 @@ static const char *textScore = "SCORE";
 static const char *textBest  = "BEST";
 static const char *textPurpose = "Join the numbers and get to the 2048 tile!";
 
-static char *saveFilePath;
-
 //-------------------------------------------------------------------------------------------------
 // Gameplay Local Draw Functions Declaration
 //-------------------------------------------------------------------------------------------------
-static void DrawTitle(void);
 static void DrawScore(void);
 static void DrawBest(void);
-static void DrawPurpose(void);
 static void DrawTile(Tile *tile);
 static void DrawBoard(void);
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Local Functions Declaration
 //-------------------------------------------------------------------------------------------------
+static void HandleInput(void);
 static void AddTile(void);
 static bool Move(int vx, int vy);
 static bool GridIsFull(void);
-static bool Available(void);
+static bool MoveIsAvailable(void);
 static Color NumToColor(int value);
 static Rectangle GetTileRec(const CellVector *v);
 static int SaveGame(void);
-static char* StrConcat(const char *s1, const char *s2);
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Screen Functions Definition
 //-------------------------------------------------------------------------------------------------
 void InitGameplayScreen(void)
 {
-    char * saveDirPath;
+    int width = GetScreenWidth();
+    int height = GetScreenHeight();
 
-    /* Define title position */
-    title.x = PADDING;
-    title.y = PADDING;
-    title.width = (WIDTH - PADDING * 4) * 0.4;
-    title.height = title.width;
+    /* Define title */
+    title = (Rectangle){ width*0.08, height*0.05, width*0.26, width*0.26 };
     titleFontSize = title.height * 0.35;
 
-    /* Define score position */
-    score.x = title.x + title.width + PADDING;
-    score.y = PADDING;
-    score.width = (WIDTH - PADDING * 4) * 0.3;
-    score.height = WIDTH * 0.15;
+    /* Define score */
+    score = (Rectangle){ width*0.42, height*0.05, width*0.21, height*0.1 };
     scoreTextFontSize = score.height * 0.35;
     scoreValueFontSize = score.height * 0.2;
 
-    /* Define best position */
-    best.x = score.x + score.width + PADDING;
-    best.y = PADDING;
-    best.width = (WIDTH - PADDING * 4) * 0.3;
-    best.height = WIDTH * 0.15;
-    bestTextFontSize = scoreTextFontSize;
-    maxTileFontSize = scoreValueFontSize;
+    /* Define best */
+    best = (Rectangle){ width*0.7, height*0.05, width*0.21, height*0.1 };
 
-    /* Define game purpose position */
-    purpose.x = PADDING;
-    purpose.y = title.y + title.height + PADDING * 0.5;
-    purpose.width = WIDTH - PADDING * 2;
-    purpose.height = purpose.width * 0.1;
-    purposeFontSize = purpose.height * 0.45;
+    /* Define purpose */
+    purpose = (Rectangle){ width*0.08, title.height + height*0.1, width*0.84, height*0.04 };
+    purposeFontSize = purpose.height * 0.7;
 
-    /* Define board position */
-    board.width = (TILE_WIDTH * SIZE) + (SPACING * (SIZE + 1));
-    board.height = board.width;
-    board.x = PADDING;
-    board.y = purpose.y + purpose.height + PADDING * 0.5;
+    /* Define board */
+    board = (Rectangle){ width*0.08, height*0.34, width*0.84, width*0.84 };
+    spacing = board.width * 0.03;
 
-    /* Initialize saving and load game*/
-    /* Initialize saving and load game*/
+    tileWidth = (board.width - 5*spacing) / SIZE;
+    tileFontSize = tileWidth * 0.5;
+    tileBorderRadius = tileWidth * 0.05;
+
+    /* Define animation */
+    animationMoveDuration = tileWidth + spacing;                        // Move animation duration in pixels
+    animationMoveSpeed = (animationMoveDuration / 0.15) * MILISEC;      // Move animation speed in pixels per miliseconds
+    animationAppearDuration = spacing * 0.5;                            // Appear animation duration in pixels
+    animationAppearSpeed = (animationAppearDuration / 0.05) * MILISEC;  // Appear animation speed in pixels per miliseconds
+
+    /* Define save path */
     saveDirPath = StrConcat(getenv("HOME"), SAVE_DIR);
     saveFilePath = StrConcat(saveDirPath, SAVE_FILE);
 
-    mkdir(saveDirPath, S_IRWXU | S_IRGRP | S_IROTH);
-    free(saveDirPath);
-
-    TraceLog(LOG_DEBUG, "[GAME] Init game play screen");
-}
-
-/* Handle gameplay screen input */
-static void HandleInput(void)
-{
-    if (IsKeyPressed(KEY_RIGHT) && Move(1, 0)) 
-    {
-        game.direction = DIRECT_RIGHT;
-        animation = ANIMATION_MOVE;
-        animationMovingBegin = clock();
-    }
-
-    if (IsKeyPressed(KEY_LEFT) && Move(-1, 0)) 
-    {
-        game.direction = DIRECT_LEFT;
-        animation = ANIMATION_MOVE;
-        animationMovingBegin = clock();
-    }
-
-    if (IsKeyPressed(KEY_UP) && Move(0, -1)) 
-    {
-        game.direction = DIRECT_UP;
-        animation = ANIMATION_MOVE;
-        animationMovingBegin = clock();
-    }
-
-    if (IsKeyPressed(KEY_DOWN) && Move(0, 1)) 
-    {
-        game.direction = DIRECT_DOWN;
-        animation = ANIMATION_MOVE;
-        animationMovingBegin = clock();
-    }
-
-    if (IsKeyPressed(KEY_ESCAPE)) 
-        TransitionToScreen(SCREEN_GAME_MENU);
+    TraceLog(LOG_DEBUG, "Init game play screen");
 }
 
 void UpdateGameplayScreen(void)
 {
-    if (animation == ANIMATION_NONE && game.direction == DIRECT_NONE) 
+    if (AnimationType == ANIMATION_NONE && MoveDirect == DIRECT_NONE) 
         HandleInput();
 
-    else if (animation == ANIMATION_MOVE) 
+    else if (AnimationType == ANIMATION_MOVE) 
     {
         /* Update tiles move animation and add new tile to the grid.
          * Applies only if the grid tiles was moved.
          */
-        moveTime = ANIMATION_MOVING_STEP * (clock() - animationMovingBegin);
-        if (moveTime > ANIMATION_MOVING_SIZE) 
+        moveTime = animationMoveSpeed * (clock() - animationMoveBegin);
+        if (moveTime > animationMoveDuration) 
         {
             moveTime = 0;
-            animation = ANIMATION_APPEAR;
+            AnimationType = ANIMATION_APPEAR;
             animationAppearBegin = clock();
 
             AddTile();
         }
     }
 
-    else if (animation == ANIMATION_APPEAR) 
+    else if (AnimationType == ANIMATION_APPEAR) 
     {
         /* Update tiles appear animation and save game state.
          * Applies after move animation.
          */
-        if (appearTime > ANIMATION_APPEAR_SIZE) 
+        if (appearTime > animationAppearDuration) 
         {
             appearTime = 0;
             moved = false;
-            animation = ANIMATION_NONE;
-            game.direction = DIRECT_NONE;
+            AnimationType = ANIMATION_NONE;
+            MoveDirect = DIRECT_NONE;
 
             game.moves++;
 
-            if (GridIsFull() && !Available())
+            if (GridIsFull() && !MoveIsAvailable())
             {
                 /* Check that game can be continue and display the game
                  * over screen.
                  */
-                TransitionToScreen(SCREEN_GAME_OVER);
+                nextScreen = GAME_OVER;
             }
             else if (!game.win && game.maxTile == 11)
             {
@@ -269,47 +209,83 @@ void UpdateGameplayScreen(void)
                  * this screen should be displayed once when the best tile
                  * score is 2048.
                  */
-                TransitionToScreen(SCREEN_GAME_WIN);
+                nextScreen = GAME_WIN;
                 game.win = true;
             }
 
             SaveGame();
         }
         else
-            appearTime = ANIMATION_APPEAR_STEP * (clock() - animationAppearBegin);
+            appearTime = animationAppearSpeed * (clock() - animationAppearBegin);
     }
 }
 
 void DrawGameplayScreen(void)
 {
-    ClearBackground(SCREEN_BACKGROUND_COLOR);
-    DrawTitle();
+    float x, y;
+
+    ClearBackground(COLOR_SCREEN_DEFAULT);
+
+    /* Draw title */
+    x = title.x + (title.width * 0.5) - MeasureText(textTitle, titleFontSize) * 0.5;
+    y = title.y + (title.height * 0.5) - (titleFontSize * 0.5);
+
+    DrawRoundedRectangleRec(title, tileBorderRadius, NumToColor(11));
+    DrawText(textTitle, x, y, titleFontSize, COLOR_TILE_WHITE);
+
+    /* Draw score */
     DrawScore();
+
+    /* Draw best */
     DrawBest();
-    DrawPurpose();
+
+    /* Draw player purpose */
+    x = purpose.x + (purpose.width * 0.5) - MeasureText(textPurpose, purposeFontSize) * 0.5;
+    y = purpose.y + (purpose.height * 0.5) - (purposeFontSize * 0.5);
+
+    DrawText(textPurpose, x, y, purposeFontSize, LIGHTGRAY);
+
+    /* Draw game board */
     DrawBoard();
 }
 
-/* 
- * Gameplay Screen Unload logic
- */
 void UnloadGameplayScreen(void)
 {
+    free(saveDirPath);
     free(saveFilePath);
-    TraceLog(LOG_INFO, "[GAME] Unload game play screen");
+    TraceLog(LOG_DEBUG, "Unload game play screen");
 }
 
+/*
+ * Public function which returns the game score
+ */
+unsigned int GetScore(void)
+{
+    return game.score;
+}
+
+/*
+ * Public function which returns the game moves
+ */
+unsigned int GetMoves(void)
+{
+    return game.moves;
+}
+
+/* 
+ * Begin a new game
+ */
 void NewGame(void)
 { 
     int row, col;
     Tile *tile;
 
     moved = false;
-    animation = ANIMATION_NONE;
+    AnimationType = ANIMATION_NONE;
+    MoveDirect = DIRECT_NONE;
 
     game.score = 0;
     game.maxTile = 0;
-    game.direction = DIRECT_NONE;
     game.win = false;
 
     /* Initialize a grid */
@@ -330,18 +306,31 @@ void NewGame(void)
     AddTile();
     AddTile();
 
-    TraceLog(LOG_INFO, "[GAME] Start new game");
+    TraceLog(LOG_INFO, "Start new game");
 }
 
-static void DrawTitle(void)
+static void HandleInput(void)
 {
-    float x, y;
+    if (IsKeyPressed(KEY_RIGHT) && Move(1, 0)) 
+        MoveDirect = DIRECT_RIGHT;
 
-    x = title.x + (title.width * 0.5) - MeasureText(textTitle, titleFontSize) * 0.5;
-    y = title.y + (title.height * 0.5) - (titleFontSize * 0.5);
+    if (IsKeyPressed(KEY_LEFT) && Move(-1, 0)) 
+        MoveDirect = DIRECT_LEFT;
 
-    DrawRoundedRectangleRec(title, TILE_BORDER_RADIUS, NumToColor(11));
-    DrawText(textTitle, x, y, titleFontSize, TILE_FONT_WHITE_COLOR);
+    if (IsKeyPressed(KEY_UP) && Move(0, -1)) 
+        MoveDirect = DIRECT_UP;
+
+    if (IsKeyPressed(KEY_DOWN) && Move(0, 1)) 
+        MoveDirect = DIRECT_DOWN;
+
+    if (MoveDirect != DIRECT_NONE)
+    {
+        AnimationType = ANIMATION_MOVE;
+        animationMoveBegin = clock();
+    }
+
+    if (IsKeyPressed(KEY_ESCAPE))
+        nextScreen = MENU;
 }
 
 static void DrawScore(void)
@@ -349,7 +338,7 @@ static void DrawScore(void)
     float x, y;
     char buffer[MAX_SCORE_BUFFER_SIZE];
 
-    DrawRoundedRectangleRec(score, TILE_BORDER_RADIUS, CELL_BACKGROUND_COLOR);
+    DrawRoundedRectangleRec(score, tileBorderRadius, COLOR_CELL_BG);
 
     /* Draw text in the top */
     sprintf(buffer, "%d", game.score);
@@ -370,49 +359,37 @@ static void DrawBest(void)
     float x, y;
     char buffer[MAX_SCORE_BUFFER_SIZE];
 
-    DrawRoundedRectangleRec(best, TILE_BORDER_RADIUS, CELL_BACKGROUND_COLOR);
+    DrawRoundedRectangleRec(best, tileBorderRadius, COLOR_CELL_BG);
 
     /* Draw text in the top */
     sprintf(buffer, "%d", game.best);
-    x = best.x + (best.width * 0.5) - MeasureText(buffer, bestTextFontSize) * 0.5;
-    y = best.y + best.height * 0.9 - bestTextFontSize;
+    x = best.x + (best.width * 0.5) - MeasureText(buffer, scoreTextFontSize) * 0.5;
+    y = best.y + best.height * 0.9 - scoreTextFontSize;
 
-    DrawText(buffer, x, y, bestTextFontSize, WHITE);
+    DrawText(buffer, x, y, scoreTextFontSize, WHITE);
 
     /* Draw best value in the bottom */
-    x = best.x + (best.width * 0.5) - MeasureText(textBest, maxTileFontSize) * 0.5;
+    x = best.x + (best.width * 0.5) - MeasureText(textBest, scoreValueFontSize) * 0.5;
     y = best.y + best.height * 0.1;
 
-    DrawText(textBest, x, y, maxTileFontSize, WHITE);
-}
-
-static void DrawPurpose(void)
-{
-    float x, y;
-
-    x = PADDING;
-    y = purpose.y + (purpose.height * 0.5) - (purposeFontSize * 0.5);
-
-    DrawText(textPurpose, x, y, purposeFontSize, LIGHTGRAY);
+    DrawText(textBest, x, y, scoreValueFontSize, WHITE);
 }
 
 static void DrawBoard(void)
 {
     /* Draw board background */
-    DrawRectangleRec(board, GRID_BACKGROUND_COLOR);
+    DrawRectangleRec(board, COLOR_GRID_BG);
 
     /* Draw grid cells */
     for (int i = 0; i < GRID_SIZE; i++)
     {
         Rectangle rec = GetTileRec(&game.grid[i].oldPosition);
-        DrawRoundedRectangleRec(rec, TILE_BORDER_RADIUS, CELL_BACKGROUND_COLOR);
+        DrawRoundedRectangleRec(rec, tileBorderRadius, COLOR_CELL_BG);
     }
 
     /* Draw grid tiles */
     for (int i = 0; i < GRID_SIZE; i++)
-    {
         DrawTile(&game.grid[i]);
-    }
 }
 
 /* 
@@ -424,7 +401,7 @@ static inline float lerp(float v0, float v1)
 }
 
 /* 
- * Draw tile on the grid if value more then 0
+ * Draw tile if value more then 0
  */
 static void DrawTile(Tile *tile)
 {
@@ -439,14 +416,14 @@ static void DrawTile(Tile *tile)
      * Please note that tile will be draw with old value untile
      * move animation counter is less than MOVE_C.
      */
-    if (tile->oldValue != tile->value && animation == ANIMATION_APPEAR)
+    if (tile->oldValue != tile->value && AnimationType == ANIMATION_APPEAR)
         tile->oldValue = tile->value;
 
     if (tile->oldValue > 0)
     {
         int font;
 
-        font = (tile->oldValue < 10) ? TILE_FONT_SIZE: TILE_FONT_SIZE * 0.8;
+        font = (tile->oldValue < 10) ? tileFontSize: tileFontSize * 0.8;
         rec = GetTileRec(&tile->oldPosition);
 
         rec.x += lerp(tile->position.x, tile->oldPosition.x);
@@ -470,34 +447,36 @@ static void DrawTile(Tile *tile)
         y = rec.y + (rec.width * 0.5) - (font * 0.5);
 
         /* Define a tile value text color */
-        color = (tile->oldValue <= 2) ? TILE_FONT_GREY_COLOR : TILE_FONT_WHITE_COLOR;
+        color = (tile->oldValue <= 2) ? COLOR_TILE_GREY : COLOR_TILE_WHITE;
 
         /* Draw tile */
-        DrawRoundedRectangleRec(rec, TILE_BORDER_RADIUS, NumToColor(tile->oldValue));
+        DrawRoundedRectangleRec(rec, tileBorderRadius, NumToColor(tile->oldValue));
         DrawText(buffer, x, y, font, color);
     }
 }
 
+/* 
+ * Returns a tile rectangle by cell position
+ */
 static Rectangle GetTileRec(const CellVector *v)
 {
     Rectangle rec;
 
     /* Add grid and tails offset */
-    rec.x = board.x + (TILE_WIDTH * (v->x % SIZE));
-    rec.y = board.y + (TILE_WIDTH * (v->y % SIZE));
+    rec.x = board.x + (tileWidth * (v->x % SIZE));
+    rec.y = board.y + (tileWidth * (v->y % SIZE));
 
     /* Add spacing offset */
-    rec.x += SPACING * ((v->x % SIZE) + 1);
-    rec.y += SPACING * ((v->y % SIZE) + 1);
+    rec.x += spacing * ((v->x % SIZE) + 1);
+    rec.y += spacing * ((v->y % SIZE) + 1);
 
-    rec.width = TILE_WIDTH;
-    rec.height = rec.width;
+    rec.width = rec.height = tileWidth;
 
     return rec;
 }
 
 /* 
- * Move grid tiles in the recived vector
+ * Move grid tiles by defined direction
  */
 static bool Move(int vx, int vy)
 {
@@ -641,11 +620,9 @@ static void AddTile(void)
 /* 
  * Converts and returns tile value as a color
  */
-static Color NumToColor(int value)
+static inline Color NumToColor(int value)
 {
-    if (value > sizeof(tileColors) / sizeof(Color))
-        return BLACK;
-    return tileColors[--value];
+    return value <= TILE_MAX_COLOR_INDEX + 1 ? tileColors[--value]: BLACK;
 }
 
 /* 
@@ -664,20 +641,19 @@ static bool GridIsFull(void)
 /* 
  * Returns true if any grid tile can be moved 
  */
-static bool Available(void)
+static bool MoveIsAvailable(void)
 {
-    int row, col;
-    int value;
-
-    for (row = 0; row < SIZE; row++)
+    for (int row = 0; row < SIZE; row++)
     {
-        for (col = 0; col < SIZE; col++)
+        for (int col = 0; col < SIZE; col++)
         {
-            value = game.grid[row * SIZE + col].value;
+            int value = game.grid[row * SIZE + col].value;
+
             if ((row < SIZE - 1 && game.grid[(row + 1) * SIZE + col].value == value) ||
                 (col < SIZE - 1 && game.grid[row * SIZE + (col + 1)].value == value) ||
                 (row > 0 && game.grid[(row - 1) * SIZE + col].value == value) ||
                 (col > 0 && game.grid[row * SIZE + (col - 1)].value == value))
+
                 return true;
         }
     }
@@ -693,18 +669,18 @@ static int SaveGame(void)
 
     if ((file = fopen(saveFilePath, "wb")) == NULL)
     {
-        TraceLog(LOG_ERROR, "error open file");
-        return 1;
+        TraceLog(LOG_WARNING, "Error open file");
+        return -1;
     }
 
     if (fwrite(&game, sizeof(struct Game), 1, file) == 0)
     {
-        TraceLog(LOG_ERROR, "error writing file");
-        return 1;
+        TraceLog(LOG_WARNING, "Error writing file");
+        return -1;
     }
 
     fclose(file);
-    TraceLog(LOG_INFO, "[GAME] game was saved successfully");
+    TraceLog(LOG_INFO, "Game was saved successfully");
 
     return 0;
 }
@@ -718,47 +694,46 @@ int LoadGame(void)
 
     if ((file = fopen(saveFilePath, "rb")) == NULL)
     {
-        TraceLog(LOG_WARNING, "error open file");
-        return 1;
+        TraceLog(LOG_WARNING, "Error open file");
+        return -1;
     }
 
     if (fread(&game, sizeof(struct Game), 1, file) == 0)
     {
-        TraceLog(LOG_WARNING, "error reading file");
-        return 1;
+        TraceLog(LOG_WARNING, "Error reading file");
+        return -1;
     }
 
     fclose(file);
-    TraceLog(LOG_INFO, "[GAME] game was loaded successfully");
+    TraceLog(LOG_INFO, "Game was loaded successfully");
 
     return 0;
 }
 
-static char* StrConcat(const char *s1, const char *s2)
-{
-    char *buffer;
-
-    buffer = malloc(strlen(s1) + strlen(s2) + 1);
-    if (!buffer)
-        TraceLog(LOG_ERROR, "can't allocate memory");
-
-    strcpy(buffer, s1);
-    strcat(buffer, s2);
-    return buffer;
-}
-
-/*
- * Public function, returns score
+/* 
+ * Try to create the save directory if it's not exist
  */
-unsigned int GetScore(void)
+int MakeSaveDir(void)
 {
-    return game.score;
-}
+    errno = 0;
 
-/*
- * Public function, returns moves counter
- */
-unsigned int GetMoves(void)
-{
-    return game.moves;
+    if (mkdir(saveDirPath, S_IRWXU | S_IRGRP | S_IROTH) != 0)
+    {
+        switch (errno)
+        {
+            case EACCES:
+                TraceLog(LOG_WARNING, "Permission denied");
+                break;
+            case ENOENT:
+                TraceLog(LOG_WARNING, "No such directory");
+                break;
+            default:
+                TraceLog(LOG_WARNING, "Save directory can't be created");
+                break;
+        }
+        return -1;
+    }
+
+    TraceLog(LOG_DEBUG, "Save directory was created success");
+    return 0;
 }

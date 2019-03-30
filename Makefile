@@ -42,7 +42,7 @@ LDLIBS = -framework CoreVideo -framework IOKit -framework Cocoa -framework GLUT 
 # Define all source files required
 PROJECT_SOURCE_FILES ?= src/game.c \
                         src/shapes.c \
-                        src/transition.c \
+			src/utils.c \
                         src/screens/screen_gameplay.c \
                         src/screens/screen_gameover.c \
                         src/screens/screen_gamewin.c \
