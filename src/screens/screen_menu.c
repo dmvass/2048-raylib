@@ -11,11 +11,7 @@
 //-------------------------------------------------------------------------------------------------
 // Game Menu Screen Variables Definition (local to this module)
 //-------------------------------------------------------------------------------------------------
-enum {
-    BUTTON_CONTINUE,
-    BUTTON_NEW_GAME,
-    BUTTON_EXIT,
-} ActiveButton;
+enum { BUTTON_CONTINUE, BUTTON_NEW_GAME, BUTTON_EXIT } ActiveButton;
 
 static Rectangle title;
 static Rectangle continueButton;
