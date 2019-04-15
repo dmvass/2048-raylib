@@ -3,7 +3,7 @@
 #include "raylib.h"
 #include "screens/screens.h"
 
-#define DEBUG  1
+// #define DEBUG  1
 
 //-------------------------------------------------------------------------------------------------
 // Module Variables Definition 

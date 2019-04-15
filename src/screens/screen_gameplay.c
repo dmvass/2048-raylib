@@ -150,7 +150,7 @@ void InitGameplayScreen(void)
 
     /* Define animation */
     animationMoveDuration = tileWidth + spacing;                        // Move animation duration in pixels
-    animationMoveSpeed = (animationMoveDuration / 0.15) * MILISEC;      // Move animation speed in pixels per miliseconds
+    animationMoveSpeed = (animationMoveDuration / 0.1) * MILISEC;       // Move animation speed in pixels per miliseconds
     animationAppearDuration = spacing * 0.5;                            // Appear animation duration in pixels
     animationAppearSpeed = (animationAppearDuration / 0.05) * MILISEC;  // Appear animation speed in pixels per miliseconds
 
