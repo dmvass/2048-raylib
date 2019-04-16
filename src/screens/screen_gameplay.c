@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <string.h>
 #include <errno.h>
 #include <time.h>
 
@@ -19,6 +20,8 @@
 
 #define SAVE_DIR   "/Library/Application Support/2048"
 #define SAVE_FILE  "/save.dat"
+
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Types and Structures Definition
@@ -94,7 +97,7 @@ static int purposeFontSize;
 static const char *textTitle = "2048";
 static const char *textScore = "SCORE";
 static const char *textBest  = "BEST";
-static const char *textPurpose = "Join the numbers and get to the 2048 tile!";
+static const char *textPurpose = "Join the numbers and get to the %d tile!";
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Local Draw Functions Declaration
@@ -240,10 +243,16 @@ void DrawGameplayScreen(void)
     DrawBest();
 
     /* Draw player purpose */
-    x = purpose.x + (purpose.width * 0.5) - MeasureText(textPurpose, purposeFontSize) * 0.5;
+    char *buffer = malloc(strlen(textPurpose) + 4);
+    if (!buffer)
+        TraceLog(LOG_ERROR, "Can't allocate memory");
+
+    sprintf(buffer, textPurpose, 2 << (MAX(game.maxTile, 11) - 1));
+    x = purpose.x + (purpose.width * 0.5) - MeasureText(buffer, purposeFontSize) * 0.5;
     y = purpose.y + (purpose.height * 0.5) - (purposeFontSize * 0.5);
 
-    DrawText(textPurpose, x, y, purposeFontSize, LIGHTGRAY);
+    DrawText(buffer, x, y, purposeFontSize, LIGHTGRAY);
+    free(buffer);
 
     /* Draw game board */
     DrawBoard();
