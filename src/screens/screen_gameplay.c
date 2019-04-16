@@ -243,7 +243,7 @@ void DrawGameplayScreen(void)
     DrawBest();
 
     /* Draw player purpose */
-    char *buffer = malloc(strlen(textPurpose) + 4);
+    char *buffer = malloc((strlen(textPurpose) + 4) * sizeof(char));
     if (!buffer)
         TraceLog(LOG_ERROR, "Can't allocate memory");
 
