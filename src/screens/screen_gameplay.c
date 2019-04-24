@@ -63,6 +63,7 @@ static Color tileColors[] = {
 
 static struct Game game;  // A local game variable
 static bool moved;        // Is true if tiles was moved
+static bool merged;       // Is true if tiles was merged
 
 static float animationMoveDuration;
 static float animationMoveSpeed;
@@ -98,6 +99,10 @@ static const char *textTitle = "2048";
 static const char *textScore = "SCORE";
 static const char *textBest  = "BEST";
 static const char *textPurpose = "Join the numbers and get to the %d tile!";
+
+static Sound moveSound;
+static Sound mergeSound;
+static Sound actionSound;
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Local Draw Functions Declaration
@@ -141,7 +146,7 @@ void InitGameplayScreen(void)
 
     /* Define purpose */
     purpose = (Rectangle){ width*0.08, title.height + height*0.1, width*0.84, height*0.04 };
-    purposeFontSize = purpose.height * 0.7;
+    purposeFontSize = purpose.height * 0.72;
 
     /* Define board */
     board = (Rectangle){ width*0.08, height*0.34, width*0.84, width*0.84 };
@@ -160,6 +165,10 @@ void InitGameplayScreen(void)
     /* Define save path */
     saveDirPath = StrConcat(getenv("HOME"), SAVE_DIR);
     saveFilePath = StrConcat(saveDirPath, SAVE_FILE);
+
+    moveSound = LoadSound("resources/move.wav");
+    mergeSound = LoadSound("resources/merge.wav");
+    actionSound = LoadSound("resources/action.wav");
 
     TraceLog(LOG_DEBUG, "Init game play screen");
 }
@@ -216,6 +225,7 @@ void UpdateGameplayScreen(void)
                 game.win = true;
             }
 
+            merged = false;
             SaveGame();
         }
         else
@@ -247,7 +257,7 @@ void DrawGameplayScreen(void)
     if (!buffer)
         TraceLog(LOG_ERROR, "Can't allocate memory");
 
-    sprintf(buffer, textPurpose, 2 << (MAX(game.maxTile, 11) - 1));
+    sprintf(buffer, textPurpose, 2 << (MAX(game.maxTile, 10)));
     x = purpose.x + (purpose.width * 0.5) - MeasureText(buffer, purposeFontSize) * 0.5;
     y = purpose.y + (purpose.height * 0.5) - (purposeFontSize * 0.5);
 
@@ -262,6 +272,11 @@ void UnloadGameplayScreen(void)
 {
     free(saveDirPath);
     free(saveFilePath);
+
+    UnloadSound(moveSound);
+    UnloadSound(mergeSound);
+    UnloadSound(actionSound);
+
     TraceLog(LOG_DEBUG, "Unload game play screen");
 }
 
@@ -336,10 +351,18 @@ static void HandleInput(void)
     {
         AnimationType = ANIMATION_MOVE;
         animationMoveBegin = clock();
+
+        if (merged)
+            PlaySound(mergeSound);
+        else
+            PlaySound(moveSound);
     }
 
     if (IsKeyPressed(KEY_ESCAPE))
+    {
         nextScreen = MENU;
+        PlaySound(actionSound);
+    }
 }
 
 static void DrawScore(void)
@@ -387,7 +410,7 @@ static void DrawBest(void)
 static void DrawBoard(void)
 {
     /* Draw board background */
-    DrawRectangleRec(board, COLOR_GRID_BG);
+    DrawRoundedRectangleRec(board, board.width * 0.015, COLOR_GRID_BG);
 
     /* Draw grid cells */
     for (int i = 0; i < GRID_SIZE; i++)
@@ -579,6 +602,7 @@ static bool Move(int vx, int vy)
                 tile->value = 0;
                 tile->position = next->oldPosition;
                 moved = true;
+                merged = true;
 
                 game.score += (2 << next->value);
                 next->value++;

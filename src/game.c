@@ -48,6 +48,7 @@ int main()
     SetTraceLog(LOG_DEBUG | LOG_INFO | LOG_WARNING | LOG_ERROR);
 
     InitWindow(screenWidth, screenHeight, windowTitle);
+    InitAudioDevice();
     InitGameplayScreen();
 
     /* Create new game if game was't loaded */
@@ -76,7 +77,8 @@ int main()
     }
 
     // De-Initialization
-    //---------------------------------------------------------------------------------------------  
+    //--------------------------------------------------------------------------------------------- 
+    CloseAudioDevice();
     CloseWindow();  // Close window and OpenGL context
     //---------------------------------------------------------------------------------------------
 

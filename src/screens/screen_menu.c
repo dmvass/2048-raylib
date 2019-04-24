@@ -17,19 +17,18 @@ static Rectangle title;
 static Rectangle continueButton;
 static Rectangle newGameButton;
 static Rectangle exitButton;
-static Rectangle footer;
 
 static float buttonBorderRadius;
 
 static int titleFontSize;
 static int buttonFontSize;
-static int footerFontSize;
+
+static Sound actionSound;
 
 static const char *textTitle = "2048";
 static const char *textContinueButton = "Continue";
 static const char *textNewGameButton = "New game";
 static const char *textExitButton = "Exit";
-static const char *textFooter = "Power by Raylib";
 
 //-------------------------------------------------------------------------------------------------
 // Game Menu Screen Local Functions Declaration
@@ -60,13 +59,9 @@ void InitMenuScreen(void)
     continueButton = (Rectangle){ buttonPositionX, height*0.34, buttonWidth, buttonHeight };
     newGameButton = (Rectangle){ buttonPositionX, height*0.46, buttonWidth, buttonHeight };
     exitButton = (Rectangle){ buttonPositionX, height*0.58, buttonWidth, buttonHeight };
+    ActiveButton = BUTTON_CONTINUE;  // Make active first button by default
 
-    /* Define footer */
-    footer = (Rectangle){ width*0.08, height*0.8, width*0.84, height*0.06 };
-    footerFontSize = footer.height * 0.6;
-
-    /* Make active first button by default */
-    ActiveButton = BUTTON_CONTINUE;
+    actionSound = LoadSound("resources/action.wav");
 
     TraceLog(LOG_DEBUG, "Init game menu screen");
 }
@@ -79,6 +74,8 @@ void UpdateMenuScreen(void)
             ActiveButton--;
         else
             ActiveButton = BUTTON_EXIT;
+        
+        PlaySound(actionSound);
     }
 
     if (IsKeyPressed(KEY_DOWN)) 
@@ -87,6 +84,8 @@ void UpdateMenuScreen(void)
             ActiveButton++;
         else
             ActiveButton = BUTTON_CONTINUE;
+        
+        PlaySound(actionSound);
     }
 
     if (IsKeyPressed(KEY_ENTER))
@@ -104,10 +103,15 @@ void UpdateMenuScreen(void)
                 exit(EXIT_SUCCESS);
                 break;
         }
+
+        PlaySound(actionSound);
     }
 
-    if (IsKeyPressed(KEY_ESCAPE)) 
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
         nextScreen = GAME_PLAY;
+        PlaySound(actionSound);
+    }
 }
 
 void DrawMenuScreen(void)
@@ -142,16 +146,11 @@ void DrawMenuScreen(void)
 
     DrawRoundedRectangleRec(exitButton, buttonBorderRadius, GetButtonColor(BUTTON_EXIT));
     DrawText(textExitButton, x, y, buttonFontSize, COLOR_TEXT_WHITE);
-
-    /* Draw footer text */
-    x = footer.x + (footer.width * 0.5) - MeasureText(textFooter, footerFontSize) * 0.5;
-    y = footer.y + (footer.height * 0.5) - (footerFontSize * 0.5);
-
-    DrawText(textFooter, x, y, footerFontSize, COLOR_TEXT_DEFAULT); 
 }
 
 void UnloadMenuScreen(void)
 {
+    UnloadSound(actionSound);
     TraceLog(LOG_DEBUG, "Unload game menu screen");
 }
 

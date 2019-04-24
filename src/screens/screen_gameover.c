@@ -23,6 +23,8 @@ static int movesTextFontSize;
 static int movesValueFontSize;
 static int helpFontSize;
 
+static Sound actionSound;
+
 static const char *textTitle = "Game Over!";
 static const char *textScore = "SCORE";
 static const char *textMoves = "MOVES";
@@ -62,13 +64,18 @@ void InitGameOverScreen(void)
     help = (Rectangle){ width*0.08, height*0.8, width*0.84, height*0.05 };
     helpFontSize = help.height * 0.7;
 
+    actionSound = LoadSound("resources/action.wav");
+
     TraceLog(LOG_DEBUG, "Init game over screen");
 }
 
 void UpdateGameOverScreen(void)
 {
     if (IsKeyPressed(KEY_ENTER)) 
+    {
         nextScreen = GAME_PLAY;
+        PlaySound(actionSound);
+    }
 }
 
 void DrawGameOverScreen(void)
@@ -98,6 +105,7 @@ void DrawGameOverScreen(void)
 
 void UnloadGameOverScreen(void)
 {
+    UnloadSound(actionSound);
     TraceLog(LOG_DEBUG, "Unload game over screen");
 }
 

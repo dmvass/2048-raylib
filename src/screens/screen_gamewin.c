@@ -16,6 +16,11 @@ static int titleFontSize;
 static int tileFontSize;
 static int helpFontSize;
 
+static Sound appearSound;
+static Sound actionSound;
+
+static bool appearSoundPlayed;
+
 static const char *textTitle = "You win!";
 static const char *textTile = "2048";
 static const char *textHelp = "Press Enter to continue";
@@ -41,13 +46,27 @@ void InitGameWinScreen(void)
     help = (Rectangle){ width*0.08, width*0.3 + height*0.45, width*0.84, height*0.05 };
     helpFontSize = help.height * 0.7;
 
+    appearSound = LoadSound("resources/appear.wav");
+    actionSound = LoadSound("resources/action.wav");
+
+    appearSoundPlayed = false;
+
     TraceLog(LOG_DEBUG, "Init game win screen");
 }
 
 void UpdateGameWinScreen(void)
 {
     if (IsKeyPressed(KEY_ENTER)) 
+    {
         nextScreen = GAME_PLAY;
+        PlaySound(actionSound);
+    }
+
+    if (!appearSoundPlayed)
+    {
+        PlaySound(appearSound);
+        appearSoundPlayed = true;
+    }
 }
 
 void DrawGameWinScreen(void)
@@ -78,5 +97,7 @@ void DrawGameWinScreen(void)
 
 void UnloadGameWinScreen(void)
 {
+    UnloadSound(appearSound);
+    UnloadSound(actionSound);
     TraceLog(LOG_DEBUG, "Unload game win screen");
 }
