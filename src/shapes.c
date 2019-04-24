@@ -9,14 +9,14 @@ static Texture2D texShapes = {0};
 static Rectangle recTexShapes = {0};
 
 //-------------------------------------------------------------------------------------------------
-// Transition Functions Declaration
+// Shapes Functions Declaration
 //-------------------------------------------------------------------------------------------------
 static Texture2D GetShapesTexture(void);
 static void DrawCirclePro(Vector2 center, float radius, Color color,
                           int startAngleRadians, int endAngleRadians);
 
 //-------------------------------------------------------------------------------------------------
-// Transition Functions Definition
+// Shapes Functions Definition
 //-------------------------------------------------------------------------------------------------
 void DrawRoundedRectangleRec(Rectangle rec, float radius, Color color)
 {
