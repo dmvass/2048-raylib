@@ -1,4 +1,3 @@
-#include "raylib.h"
 #include "screens.h"
 
 #define COLOR_TILE_FONT  CLITERAL{ 249, 246, 242, 255 }
@@ -15,9 +14,6 @@ static float tileBorderRadius;
 static int titleFontSize;
 static int tileFontSize;
 static int helpFontSize;
-
-static Sound appearSound;
-static Sound actionSound;
 
 static bool appearSoundPlayed;
 
@@ -45,9 +41,6 @@ void InitGameWinScreen(void)
     /* Define help text */
     help = (Rectangle){ width*0.08, width*0.3 + height*0.45, width*0.84, height*0.05 };
     helpFontSize = help.height * 0.7;
-
-    appearSound = LoadSound("resources/appear.wav");
-    actionSound = LoadSound("resources/action.wav");
 
     appearSoundPlayed = false;
 
@@ -97,7 +90,5 @@ void DrawGameWinScreen(void)
 
 void UnloadGameWinScreen(void)
 {
-    UnloadSound(appearSound);
-    UnloadSound(actionSound);
     TraceLog(LOG_DEBUG, "Unload game win screen");
 }

@@ -1,10 +1,19 @@
-.PHONY: all clean
+.PHONY: all clean bundle dist
 
 # Define required raylib variables
 PLATFORM ?= PLATFORM_DESKTOP
 RAYLIB_PATH ?= deps/raylib
 PROJECT_NAME ?= 2048
 DESTINATION ?= build
+
+# Define required application bundle variables
+ORIGIN_ICON=resources/icon.png
+ICON_DIR=resources/icon.iconset
+
+# Define required distribution variables
+TMP_DMG = build/osx/$(PROJECT_NAME).dmg
+TMP_DIR = build/osx/tmp
+OUT_DMG = dist/osx/$(PROJECT_NAME).dmg
 
 RAYLIB_RELEASE_PATH = $(RAYLIB_PATH)/release/libs/osx
 
@@ -68,8 +77,27 @@ $(PROJECT_NAME): $(OBJS)
 
 # Clean everything
 clean:
-	find . -type f -perm +ugo+x -delete
+	# find . -type f -perm +ugo+x -delete
 	rm -f src/*.o
 	rm -f src/screens/*.o
-	rm -f build/*
+	rm -r build/$(PROJECT_NAME)
 	@echo Cleaning done
+
+bundle: all
+
+	rm -rf build/osx
+
+	mkdir build/osx
+	mkdir build/osx/$(PROJECT_NAME).app
+	mkdir build/osx/$(PROJECT_NAME).app/Contents
+	mkdir build/osx/$(PROJECT_NAME).app/Contents/MacOS
+	mkdir build/osx/$(PROJECT_NAME).app/Contents/Resources
+
+	cp build/$(PROJECT_NAME) build/osx/$(PROJECT_NAME).app/Contents/MacOS
+	cp pkg/osx/Info.plist build/osx/$(PROJECT_NAME).app/Contents
+	cp -r resources/audio/ build/osx/$(PROJECT_NAME).app/Contents/Resources/audio/
+
+	scripts/icon.sh build/osx/$(PROJECT_NAME).app/Contents/Resources
+
+dist: bundle
+	scripts/dist_osx.sh

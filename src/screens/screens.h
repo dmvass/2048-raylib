@@ -1,6 +1,8 @@
 #ifndef SCREENS_H
 #define SCREENS_H
 
+#include "raylib.h"
+
 #include "../shapes.h"
 #include "../utils.h"
 
@@ -36,6 +38,11 @@ typedef enum GameScreen { GAME_PLAY, GAME_WIN, GAME_OVER, MENU} GameScreen;
 //-------------------------------------------------------------------------------------------------
 GameScreen currentScreen;
 GameScreen nextScreen;
+
+Sound moveSound;
+Sound mergeSound;
+Sound actionSound;
+Sound appearSound;
 
 //-------------------------------------------------------------------------------------------------
 // Gameplay Screen Functions Declaration

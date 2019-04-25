@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "raylib.h"
 #include "screens.h"
 
 #define COLOR_TEXT_WHITE     CLITERAL{ 249, 246, 242, 255 }
@@ -22,8 +21,6 @@ static float buttonBorderRadius;
 
 static int titleFontSize;
 static int buttonFontSize;
-
-static Sound actionSound;
 
 static const char *textTitle = "2048";
 static const char *textContinueButton = "Continue";
@@ -60,8 +57,6 @@ void InitMenuScreen(void)
     newGameButton = (Rectangle){ buttonPositionX, height*0.46, buttonWidth, buttonHeight };
     exitButton = (Rectangle){ buttonPositionX, height*0.58, buttonWidth, buttonHeight };
     ActiveButton = BUTTON_CONTINUE;  // Make active first button by default
-
-    actionSound = LoadSound("resources/action.wav");
 
     TraceLog(LOG_DEBUG, "Init game menu screen");
 }
@@ -150,7 +145,6 @@ void DrawMenuScreen(void)
 
 void UnloadMenuScreen(void)
 {
-    UnloadSound(actionSound);
     TraceLog(LOG_DEBUG, "Unload game menu screen");
 }
 

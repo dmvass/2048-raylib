@@ -1,9 +1,14 @@
 #include <stdlib.h>
+#include <string.h>
+#include <sys/param.h>  // PATH_MAX
 
 #include "raylib.h"
+
+#include "utils.h"
 #include "screens/screens.h"
 
 // #define DEBUG  1
+#define MAKE_BUNDLE 1
 
 //-------------------------------------------------------------------------------------------------
 // Module Variables Definition 
@@ -29,14 +34,18 @@ void DrawGame(void);    // Draw game (one frame)
 void UpdateTransition(void);
 void DrawTransition(void);
 void TransitionToScreen(const int screen);
+void LoadSFX(const char *absolutepath);
+void UnloadSFX(void);
 
 //-------------------------------------------------------------------------------------------------
 // Game main entry point
 //-------------------------------------------------------------------------------------------------
-int main()
+int main(int argc, char **argv)
 {
     // Initialization
     //---------------------------------------------------------------------------------------------
+    char absolutepath[PATH_MAX];
+
     onTransition = false;
     transFadeOut = false;
     transAlpha = 0;
@@ -47,11 +56,30 @@ int main()
 
     SetTraceLog(LOG_DEBUG | LOG_INFO | LOG_WARNING | LOG_ERROR);
 
+    // Define absolute path
+    if (realpath(argv[0], absolutepath) == 0) 
+        TraceLog(LOG_ERROR, "realpath failed");
+
+    for (int i = strlen(absolutepath); i > 0; i--)
+    {
+        if (absolutepath[i] == '/')
+        {
+            absolutepath[i] = 0;
+            break;
+        }
+    }
+
+    TraceLog(LOG_DEBUG, "Realpath: %s", absolutepath);
+
+    // Load game resources
+    LoadSFX(absolutepath);
+
+    // Initialize window and game screen
     InitWindow(screenWidth, screenHeight, windowTitle);
     InitAudioDevice();
     InitGameplayScreen();
 
-    /* Create new game if game was't loaded */
+    // Create new game if game was't loaded
     if (LoadGame() != 0)
     {
         MakeSaveDir();
@@ -80,6 +108,7 @@ int main()
     //--------------------------------------------------------------------------------------------- 
     CloseAudioDevice();
     CloseWindow();  // Close window and OpenGL context
+    UnloadSFX();
     //---------------------------------------------------------------------------------------------
 
     return 0;
@@ -183,4 +212,40 @@ void UpdateTransition(void)
 void DrawTransition(void)
 {
     DrawRectangle(0, 0, screenWidth, screenHeight, Fade(COLOR_SCREEN_DEFAULT, transAlpha));
+}
+
+void LoadSFX(const char *absolutepath)
+{
+#if defined(MAKE_BUNDLE)
+    char *soundpath;
+
+    soundpath = StrConcat(absolutepath, "/../resources/audio/move.wav");
+    moveSound = LoadSound(soundpath);
+    free(soundpath);
+
+    soundpath = StrConcat(absolutepath, "/../resources/audio/merge.wav");
+    mergeSound = LoadSound(soundpath);
+    free(soundpath);
+
+    soundpath = StrConcat(absolutepath, "/../resources/audio/action.wav");
+    actionSound = LoadSound(soundpath);
+    free(soundpath);
+
+    soundpath = StrConcat(absolutepath, "/../resources/audio/appear.wav");
+    appearSound = LoadSound(soundpath);
+    free(soundpath);
+#else
+    moveSound = LoadSound("resources/audio/move.wav");
+    mergeSound = LoadSound("resources/audio/merge.wav");
+    actionSound = LoadSound("resources/audio/action.wav");
+    appearSound = LoadSound("resources/audio/appear.wav");
+#endif
+}
+
+void UnloadSFX(void)
+{
+    UnloadSound(moveSound);
+    UnloadSound(mergeSound);
+    UnloadSound(actionSound);
+    UnloadSound(appearSound);
 }

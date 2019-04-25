@@ -1,6 +1,5 @@
 #include <stdio.h>
 
-#include "raylib.h"
 #include "screens.h"
 
 #define COLOR_SCORE_BG  CLITERAL{ 204, 193, 181, 245 }
@@ -22,8 +21,6 @@ static int scoreValueFontSize;
 static int movesTextFontSize;
 static int movesValueFontSize;
 static int helpFontSize;
-
-static Sound actionSound;
 
 static const char *textTitle = "Game Over!";
 static const char *textScore = "SCORE";
@@ -64,8 +61,6 @@ void InitGameOverScreen(void)
     help = (Rectangle){ width*0.08, height*0.8, width*0.84, height*0.05 };
     helpFontSize = help.height * 0.7;
 
-    actionSound = LoadSound("resources/action.wav");
-
     TraceLog(LOG_DEBUG, "Init game over screen");
 }
 
@@ -105,7 +100,6 @@ void DrawGameOverScreen(void)
 
 void UnloadGameOverScreen(void)
 {
-    UnloadSound(actionSound);
     TraceLog(LOG_DEBUG, "Unload game over screen");
 }
 
