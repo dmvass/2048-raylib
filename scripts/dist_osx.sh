@@ -9,7 +9,7 @@ OUT_DMG="$DIST_DIR/$PROJECT_NAME.dmg"
 if [[ ! -e $DIST_DIR ]]; then
     mkdir $DIST_DIR
 else
-    rm -r $DIST_DIR
+    rm -f "$DIST_DIR/$PROJECT_NAME.dmg"
 fi
 
 mkdir $TMP_DIR
