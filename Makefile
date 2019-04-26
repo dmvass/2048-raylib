@@ -5,6 +5,7 @@ PLATFORM ?= PLATFORM_DESKTOP
 RAYLIB_PATH ?= deps/raylib
 PROJECT_NAME ?= 2048
 DESTINATION ?= build
+BUNDLE ?= BUNDLE_NONE
 
 # Define required application bundle variables
 ORIGIN_ICON=resources/icon.png
@@ -68,19 +69,19 @@ all: clean
 
 # Project target defined by PROJECT_NAME
 $(PROJECT_NAME): $(OBJS)
-	$(CC) -o $(DESTINATION)/$(PROJECT_NAME)$(EXT) $(OBJS) $(CFLAGS) $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS) -D$(PLATFORM)
+	$(CC) -o $(DESTINATION)/$(PROJECT_NAME)$(EXT) $(OBJS) $(CFLAGS) $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS) -D$(PLATFORM) -D$(BUNDLE)
 
 # Compile source files
 # NOTE: This pattern will compile every module defined on $(OBJS)
 %.o: %.c
-	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS) -D$(PLATFORM)
+	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS) -D$(PLATFORM) -D$(BUNDLE)
 
 # Clean everything
 clean:
 	# find . -type f -perm +ugo+x -delete
 	rm -f src/*.o
 	rm -f src/screens/*.o
-	rm -r build/$(PROJECT_NAME)
+	rm -f build/$(PROJECT_NAME)
 	@echo Cleaning done
 
 bundle: all

@@ -8,7 +8,6 @@
 #include "screens/screens.h"
 
 // #define DEBUG  1
-#define MAKE_BUNDLE 1
 
 //-------------------------------------------------------------------------------------------------
 // Module Variables Definition 
@@ -216,7 +215,7 @@ void DrawTransition(void)
 
 void LoadSFX(const char *absolutepath)
 {
-#if defined(MAKE_BUNDLE)
+#if defined(BUNDLE_OSX)
     char *soundpath;
 
     soundpath = StrConcat(absolutepath, "/../resources/audio/move.wav");

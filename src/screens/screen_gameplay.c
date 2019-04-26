@@ -726,7 +726,7 @@ int LoadGame(void)
     fclose(file);
     TraceLog(LOG_INFO, "Game was loaded successfully");
 
-    return 0;
+    return MoveIsAvailable() - 1;
 }
 
 /* 
