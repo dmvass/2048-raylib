@@ -293,10 +293,7 @@ void NewGame(void)
     moved = false;
     AnimationType = ANIMATION_NONE;
     MoveDirect = DIRECT_NONE;
-
     game.score = 0;
-    game.maxTile = 0;
-    game.win = false;
 
     /* Initialize a grid */
     for (row = 0; row < SIZE; row++)
@@ -316,6 +313,7 @@ void NewGame(void)
     AddTile();
     AddTile();
 
+    SaveGame();
     TraceLog(LOG_INFO, "Start new game");
 }
 
