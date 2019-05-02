@@ -1,26 +1,25 @@
 #include <math.h>  // Required for: sinf(), cosf()
-
 #include "shapes.h"
 
 //-------------------------------------------------------------------------------------------------
-// Shapes Variables Definition 
+// Variables Definition 
 //-------------------------------------------------------------------------------------------------
 static Texture2D texShapes = {0};
 static Rectangle recTexShapes = {0};
 
 //-------------------------------------------------------------------------------------------------
-// Shapes Functions Declaration
+// Local Functions Declaration
 //-------------------------------------------------------------------------------------------------
 static Texture2D GetShapesTexture(void);
 static void DrawCirclePro(Vector2 center, float radius, Color color,
                           int startAngleRadians, int endAngleRadians);
 
 //-------------------------------------------------------------------------------------------------
-// Shapes Functions Definition
+// Functions Definition
 //-------------------------------------------------------------------------------------------------
 void DrawRoundedRectangleRec(Rectangle rec, float radius, Color color)
 {
-    Rectangle rec1, rec2;
+    Rectangle recMiddle, recLeft, recRight;
 
     /* Make sure the rectangle is at least as wide and tall as
      * the rounded corners.
@@ -31,25 +30,36 @@ void DrawRoundedRectangleRec(Rectangle rec, float radius, Color color)
     if (rec.height < (radius * 2)) 
         rec.height = radius * 2;
 
-    /* Vertical rectangle */
-    rec1.x = rec.x + radius;
-    rec1.y = rec.y; 
-    rec1.width = rec.width - radius * 2;
-    rec1.height = rec.height;
+    recMiddle.x = rec.x + radius;
+    recMiddle.y = rec.y; 
+    recMiddle.width = rec.width - radius * 2;
+    recMiddle.height = rec.height;
 
-    /* Horizontal rectangle */
-    rec2.x = rec.x;
-    rec2.y = rec.y + radius; 
-    rec2.width = rec.width;
-    rec2.height = rec.height - radius * 2;
+    /* Left rectangle */
+    recLeft.x = rec.x;
+    recLeft.y = rec.y + radius; 
+    recLeft.width = recMiddle.x - recLeft.x;
+    recLeft.height = rec.height - radius * 2;
 
-    DrawCirclePro((Vector2){rec1.x, rec2.y}, radius, color, 180, 270);                          // Draw Left-Up corner
-    DrawCirclePro((Vector2){rec1.x, rec2.y + rec2.height}, radius, color, 270, 360);            // Draw Left-Down corner
-    DrawCirclePro((Vector2){rec1.x + rec1.width, rec2.y}, radius, color, 90, 180);              // Draw Right-Up corner
-    DrawCirclePro((Vector2){rec1.x + rec1.width, rec2.y + rec2.height}, radius, color, 0, 90);  // Draw Right-Down corner
-    DrawRectangleRec(rec1, color);  // Draw vertical rectangle
-    DrawRectangleRec(rec2, color);  // Draw horizontal rectangle
+    /* Right rectangle */
+    recRight.x = recMiddle.x + recMiddle.width;
+    recRight.y = recLeft.y; 
+    recRight.width = recLeft.width;
+    recRight.height = recLeft.height; 
+
+    DrawCirclePro((Vector2){recMiddle.x, recLeft.y}, radius, color, 180, 270);                    // Draw Left-Up corner
+    DrawCirclePro((Vector2){recMiddle.x, recLeft.y + recLeft.height}, radius, color, 270, 360);   // Draw Left-Down corner
+    DrawCirclePro((Vector2){recMiddle.x + recMiddle.width, recRight.y}, radius, color, 90, 180);  // Draw Right-Up corner
+    DrawCirclePro((Vector2){recMiddle.x + recMiddle.width,
+                            recRight.y + recRight.height}, radius, color, 0, 90);                 // Draw Right-Down corner
+    DrawRectangleRec(recMiddle, color);  // Draw vertical rectangle
+    DrawRectangleRec(recLeft, color);    // Draw horizontal rectangle
+    DrawRectangleRec(recRight, color);   // Draw horizontal rectangle
 }
+
+//-------------------------------------------------------------------------------------------------
+// Local Functions Definition
+//-------------------------------------------------------------------------------------------------
 
 // Get texture to draw shapes (RAII)
 static Texture2D GetShapesTexture(void)

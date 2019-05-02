@@ -1,20 +1,30 @@
-#include <stdlib.h>
-#include <string.h>
+#include <sys/stat.h>  // mkdir, S_IRWXU, S_IRGRP, S_IROTH
+#include <errno.h>     // errno, EACCES, ENOENT
+#include "raylib.h"    // TraceLog, LOG_DEBUG
+#include "utils.h"
 
-#include "raylib.h"
-
-
-char* StrConcat(const char *s1, const char *s2)
+// Try to create the save directory if it's not exist
+int MakeSaveDir(char *dirpath)
 {
-    char *buffer;
+    errno = 0;
 
-    buffer = malloc(strlen(s1) + strlen(s2) + 1);
-    if (!buffer)
+    if (mkdir(dirpath, S_IRWXU | S_IRGRP | S_IROTH) != 0)
     {
-        TraceLog(LOG_ERROR, "Can't allocate memory");
-        return NULL;
+        switch (errno)
+        {
+            case EACCES:
+                TraceLog(LOG_WARNING, "Permission denied");
+                break;
+            case ENOENT:
+                TraceLog(LOG_WARNING, "No such directory");
+                break;
+            default:
+                TraceLog(LOG_WARNING, "Save directory can't be created");
+                break;
+        }
+        return -1;
     }
-    strcpy(buffer, s1);
-    strcat(buffer, s2);
-    return buffer;
+
+    TraceLog(LOG_DEBUG, "Save directory was created success");
+    return 0;
 }

@@ -1,250 +1,133 @@
-#include <stdlib.h>
-#include <string.h>
+#include <stdio.h>      // fopen, fread, fwrite, fclose, fseek, SEEK_SET
 #include <sys/param.h>  // PATH_MAX
-
 #include "raylib.h"
-
+#include "game.h"
+#include "observer.h"
+#include "resources.h"
 #include "utils.h"
-#include "screens/screens.h"
-
-// #define DEBUG  1
 
 //-------------------------------------------------------------------------------------------------
-// Module Variables Definition 
+// Local Variables Definition
 //-------------------------------------------------------------------------------------------------
-const int screenWidth = 420;
-const int screenHeight = 640;
-
-const char *windowTitle = "2048";
-
-static bool onTransition;
-static bool transFadeOut;
-static float transAlpha;
-static int transFromScreen;
-static int transToScreen;
-static int framesCounter;
+static Game game;
+static FILE *file;
 
 //-------------------------------------------------------------------------------------------------
-// Module Functions Declaration (local)
+// Local Functions Declaration
 //-------------------------------------------------------------------------------------------------
-void UpdateGame(void);  // Update game (one frame)
-void DrawGame(void);    // Draw game (one frame)
-
-void UpdateTransition(void);
-void DrawTransition(void);
-void TransitionToScreen(const int screen);
-void LoadSFX(const char *absolutepath);
-void UnloadSFX(void);
+static int SaveGame(void);
+static int LoadGame(void);
 
 //-------------------------------------------------------------------------------------------------
-// Game main entry point
+// Local Observer Functions Declaration
 //-------------------------------------------------------------------------------------------------
-int main(int argc, char **argv)
+static void SavingObserver(Event);
+static void GameWinObserver(Event);
+static void GameOverObserver(Event);
+
+//-------------------------------------------------------------------------------------------------
+// Functions Definition
+//-------------------------------------------------------------------------------------------------
+Game * GetGame(void) { return &game; }
+
+void NewGame(void)
 {
-    // Initialization
-    //---------------------------------------------------------------------------------------------
-    char absolutepath[PATH_MAX];
+    TraceLog(LOG_INFO, "Start new game");
 
-    onTransition = false;
-    transFadeOut = false;
-    transAlpha = 0;
-    transFromScreen = -1;
-    transToScreen = -1;
-    framesCounter = 0;
-    currentScreen = nextScreen = GAME_PLAY;
+    GetGame()->score = 0;
+    GetGame()->moves = 0;
+    GetGame()->state = GAME_PLAY;
 
-    SetTraceLog(LOG_DEBUG | LOG_INFO | LOG_WARNING | LOG_ERROR);
+    ResetBoard(&GetGame()->board);
+    SaveGame();
+}
 
-    // Define absolute path
-    if (realpath(argv[0], absolutepath) == 0) 
-        TraceLog(LOG_ERROR, "realpath failed");
+void InitGame(void)
+{
+    MakeSaveDir(saveDirPath);  // Create save data directory if not exist
 
-    for (int i = strlen(absolutepath); i > 0; i--)
+    if ((file = fopen(saveFilePath, "rb+")) == NULL)
     {
-        if (absolutepath[i] == '/')
-        {
-            absolutepath[i] = 0;
-            break;
-        }
+        file = fopen(saveFilePath, "wb+");
     }
 
-    TraceLog(LOG_DEBUG, "Realpath: %s", absolutepath);
-
-    // Load game resources
-    LoadSFX(absolutepath);
-
-    // Initialize window and game screen
-    InitWindow(screenWidth, screenHeight, windowTitle);
-    InitAudioDevice();
-    InitGameplayScreen();
-
-    // Create new game if game was't loaded
-    if (LoadGame() != 0)
+    if (LoadGame() != 0 || !MoveIsAvailable(&GetGame()->board))
     {
-        MakeSaveDir();
         NewGame();
-    } 
-
-    SetExitKey(0);
-    SetTargetFPS(60);
-    //---------------------------------------------------------------------------------------------
-
-    // Main game loop
-    while (!WindowShouldClose())  // Detect window close button or ESC key
-    {
-        // Update
-        //-----------------------------------------------------------------------------------------
-        UpdateGame();
-        //-----------------------------------------------------------------------------------------
-
-        // Draw
-        //-----------------------------------------------------------------------------------------
-        DrawGame();
-        //-----------------------------------------------------------------------------------------
     }
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------------- 
-    CloseAudioDevice();
-    CloseWindow();  // Close window and OpenGL context
-    UnloadSFX();
-    //---------------------------------------------------------------------------------------------
+    AttachObserver(*SavingObserver);
+    AttachObserver(*GameWinObserver);
+    AttachObserver(*GameOverObserver);
+}
 
+void UnloadGame(void)
+{
+    TraceLog(LOG_DEBUG, "Unload Game");
+
+    DetachObserver(*SavingObserver);
+    DetachObserver(*GameWinObserver);
+    DetachObserver(*GameOverObserver);
+
+    fclose(file);
+    TraceLog(LOG_INFO, "Close save file");
+}
+
+//-------------------------------------------------------------------------------------------------
+// Local Functions Definition
+//-------------------------------------------------------------------------------------------------
+static int SaveGame(void)
+{
+    fseek(file, 0, SEEK_SET);
+
+    if (fwrite(GetGame(), sizeof(Game), 1, file) == 0)
+    {
+        TraceLog(LOG_WARNING, "Error writing file");
+        return -1;
+    }
+    TraceLog(LOG_INFO, "Game was saved successfully");
     return 0;
 }
 
-void UpdateGame(void)
+static int LoadGame(void)
 {
-    if (!onTransition)
+    if (fread(GetGame(), sizeof(Game), 1, file) == 0)
     {
-        switch (currentScreen)
-        {
-            case GAME_PLAY: UpdateGameplayScreen(); break;
-            case GAME_WIN: UpdateGameWinScreen(); break;
-            case GAME_OVER: UpdateGameOverScreen(); break;
-            case MENU: UpdateMenuScreen(); break;
-            default: break;
-        }
-
-        if (currentScreen != nextScreen)
-            TransitionToScreen(nextScreen);
+        TraceLog(LOG_WARNING, "Error reading file");
+        return -1;
     }
-    else
-        UpdateTransition();
+    TraceLog(LOG_INFO, "Game was loaded successfully");
+    return 0;
 }
 
-void DrawGame(void)
+// Save tha Game if tiles in the Board were moved or merged.
+static void SavingObserver(Event event)
 {
-    BeginDrawing();
-
-    switch (currentScreen)
+    if (event == ADD_TILE_EVENT || event == GAME_OVER_EVENT)
     {
-        case GAME_PLAY: DrawGameplayScreen(); break;
-        case GAME_WIN: DrawGameWinScreen(); break;
-        case GAME_OVER: DrawGameOverScreen(); break;
-        case MENU: DrawMenuScreen(); break;
-        default: break;
-    }
-
-    if (onTransition)
-        DrawTransition();
-
-#ifdef DEBUG
-    DrawFPS(5, 5);
-#endif
-
-    EndDrawing();
-}
- 
-void TransitionToScreen(const int screen)
-{
-    onTransition = true;
-    transFromScreen = currentScreen;
-    transToScreen = screen;
-}
-
-void UpdateTransition(void)
-{
-    if (!transFadeOut)
-    {
-        if ((transAlpha += 0.05) >= 1.0)
-        {
-            switch (transFromScreen)
-            {
-                case GAME_PLAY: UnloadGameplayScreen(); break;
-                case GAME_WIN: UnloadGameWinScreen(); break;
-                case GAME_OVER: 
-                    UnloadGameOverScreen(); 
-                    NewGame();
-                    break;
-                case MENU: UnloadMenuScreen(); break;
-                default: break;
-            }
-
-            switch (transToScreen)
-            {
-                case GAME_PLAY: InitGameplayScreen(); break;
-                case GAME_WIN: InitGameWinScreen(); break;
-                case GAME_OVER: InitGameOverScreen(); break;
-                case MENU: InitMenuScreen(); break;
-                default: break;
-            }
-
-            transAlpha = 1.0;
-            transFadeOut = true;
-            framesCounter = 0;
-            currentScreen = transToScreen;
-        }
-    }
-    else  // Transition fade out logic
-    {
-        if ((transAlpha -= 0.05) <= 0)
-        {
-            transAlpha = 0;
-            transFadeOut = false;
-            transToScreen = -1;
-            onTransition = false;
-        }
+        SaveGame();
     }
 }
 
-void DrawTransition(void)
+/*
+ * Check that game is won and display a specified screen,
+ * this screen should be displayed once when the best tile
+ * score is 2048.
+ */
+static void GameWinObserver(Event event)
 {
-    DrawRectangle(0, 0, screenWidth, screenHeight, Fade(COLOR_SCREEN_DEFAULT, transAlpha));
+    if (event == ADD_TILE_EVENT && !GetGame()->win && GetGame()->max == 11)
+    {
+        GetGame()->win   = true;
+        GetGame()->state = GAME_WIN;
+    }
 }
 
-void LoadSFX(const char *absolutepath)
+// Change the Game state on Game Over.
+static void GameOverObserver(Event event)
 {
-#if defined(BUNDLE_OSX)
-    char *soundpath;
-
-    soundpath = StrConcat(absolutepath, "/../resources/audio/move.wav");
-    moveSound = LoadSound(soundpath);
-    free(soundpath);
-
-    soundpath = StrConcat(absolutepath, "/../resources/audio/merge.wav");
-    mergeSound = LoadSound(soundpath);
-    free(soundpath);
-
-    soundpath = StrConcat(absolutepath, "/../resources/audio/action.wav");
-    actionSound = LoadSound(soundpath);
-    free(soundpath);
-
-    soundpath = StrConcat(absolutepath, "/../resources/audio/appear.wav");
-    appearSound = LoadSound(soundpath);
-    free(soundpath);
-#else
-    moveSound = LoadSound("resources/audio/move.wav");
-    mergeSound = LoadSound("resources/audio/merge.wav");
-    actionSound = LoadSound("resources/audio/action.wav");
-    appearSound = LoadSound("resources/audio/appear.wav");
-#endif
-}
-
-void UnloadSFX(void)
-{
-    UnloadSound(moveSound);
-    UnloadSound(mergeSound);
-    UnloadSound(actionSound);
-    UnloadSound(appearSound);
+    if (event == GAME_OVER_EVENT && GetGame()->state != GAME_OVER)
+    {
+        GetGame()->state = GAME_OVER;
+    }
 }
