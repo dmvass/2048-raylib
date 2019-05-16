@@ -54,15 +54,8 @@ int main(int argc, char **argv)
 
     // Define absolute path
     if (realpath(argv[0], absolutepath) == 0)
-        TraceLog(LOG_ERROR, "realpath failed");
-
-    for (int i = strlen(absolutepath); i > 0; i--)
     {
-        if (absolutepath[i] == '/')
-        {
-            absolutepath[i] = 0;
-            break;
-        }
+        TraceLog(LOG_ERROR, "realpath failed");  // error exit
     }
 
     TraceLog(LOG_DEBUG, "Realpath: %s", absolutepath);
@@ -71,7 +64,7 @@ int main(int argc, char **argv)
     InitWindow(screenWidth, screenHeight, title);
     InitAudioDevice();
 
-    InitResources(absolutepath);
+    InitResources(GetDirectoryPath(absolutepath));
 
     InitGame();
     InitGameplayScreen();
@@ -122,10 +115,14 @@ void UpdateGame(void)
         }
 
         if (currentScreen != nextScreen)
+        {
             TransitionToScreen(nextScreen);
+        }
     }
     else
+    {
         UpdateTransition();
+    }
 }
 
 void DrawGame(void)
@@ -140,7 +137,9 @@ void DrawGame(void)
     }
 
     if (onTransition)
+    {
         DrawTransition();
+    }
 
 #ifdef DEBUG
     DrawFPS(5, 5);
