@@ -6,10 +6,10 @@
 
 #if defined(PLATFORM_OSX)
     #define SAVE_DIR   "/Library/Application Support/2048"
-    #define SAVE_FILE  "/save.dat"
+    #define SAVE_FILE  "/storage.data"
 #else
     #define SAVE_DIR   "/2048"
-    #define SAVE_FILE  "/save.dat"
+    #define SAVE_FILE  "/storage.data"
 #endif
 
 //-------------------------------------------------------------------------------------------------
