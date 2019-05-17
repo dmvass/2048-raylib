@@ -9,8 +9,8 @@
 //-------------------------------------------------------------------------------------------------
 // Module Variables Definition
 //-------------------------------------------------------------------------------------------------
-static const int screenWidth   = 420;
-static const int screenHeight  = 640;
+static const int screenWidth  = 420;
+static const int screenHeight = 640;
 
 static const char *title = "2048";
 
@@ -38,11 +38,11 @@ int main(int argc, char **argv)
     //---------------------------------------------------------------------------------------------
     char absolutepath[PATH_MAX];
 
-    onTransition    = false;
-    transFadeOut    = false;
-    transAlpha      = 0;
-    transToScreen   = -1;
-    framesCounter   = 0;
+    onTransition  = false;
+    transFadeOut  = false;
+    transAlpha    = 0;
+    transToScreen = -1;
+    framesCounter = 0;
 
     currentScreen = nextScreen = SCREEN_PLAY;
 
@@ -150,7 +150,7 @@ void DrawGame(void)
 
 void TransitionToScreen(const int screen)
 {
-    onTransition = true;
+    onTransition  = true;
     transToScreen = screen;
 }
 
@@ -160,8 +160,8 @@ void UpdateTransition(void)
     {
         if ((transAlpha += 0.05f) >= 1.0f)
         {
-            transAlpha = 1.0f;
-            transFadeOut = true;
+            transAlpha    = 1.0f;
+            transFadeOut  = true;
             framesCounter = 0;
             currentScreen = transToScreen;
         }
@@ -170,10 +170,10 @@ void UpdateTransition(void)
     {
         if ((transAlpha -= 0.05f) <= 0)
         {
-            transAlpha = 0;
-            transFadeOut = false;
+            transAlpha    = 0;
+            transFadeOut  = false;
             transToScreen = -1;
-            onTransition = false;
+            onTransition  = false;
         }
     }
 }

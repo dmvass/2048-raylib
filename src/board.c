@@ -335,7 +335,7 @@ static void AddTile(Board *board)
     {
         j = rand() % j;
         empty_grid[j]->source = empty_grid[j];
-        empty_grid[j]->value = (rand() / RAND_MAX) < 0.9 ? 1 : 2;
+        empty_grid[j]->value = (rand() / RAND_MAX) < 0.9f ? 1 : 2;
         empty_grid[j]->oldValue = empty_grid[j]->value;
     }
 }
