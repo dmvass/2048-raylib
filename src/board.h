@@ -14,12 +14,12 @@ typedef struct {
     unsigned int y;
 } CellVector;
 
-typedef struct sTile {
+typedef struct _tile {
     unsigned int value;
     unsigned int oldValue;
     CellVector position;
     CellVector oldPosition;
-    struct sTile *source;    // Pointer on a merged tile
+    struct _tile *source;    // Pointer on a merged tile
 } Tile;
 
 typedef struct {
