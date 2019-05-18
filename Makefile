@@ -90,12 +90,12 @@ LDLIBS = -framework CoreVideo -framework IOKit -framework Cocoa -framework GLUT 
 
 # Define all source files required
 PROJECT_SOURCE_FILES ?= src/main.c \
-			src/observer.c \
-			src/resources.c \
+			            src/observer.c \
+			            src/resources.c \
                         src/shapes.c \
-			src/utils.c \
-			src/board.c \
-			src/game.c \
+			            src/utils.c \
+			            src/board.c \
+			            src/game.c \
                         src/screens/screen_play.c \
                         src/screens/screen_win.c
 
