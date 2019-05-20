@@ -28,13 +28,27 @@ void UnloadFonts(void);
 //-------------------------------------------------------------------------------------------------
 void InitResources(const char *absolutepath)
 {
+#if defined(PLATFORM_WINDOWS)
     // Define game absolute save dir path
-    strcpy(saveDirPath, getenv("HOME"));
-    strcat(saveDirPath, SAVE_DIR);
+    strcpy(saveDirPath, getenv("USERPROFILE"));
+    strcat(saveDirPath, "\\2048");
 
     // Define game absolute save file path
     strcpy(saveFilePath, saveDirPath);
-    strcat(saveFilePath, SAVE_FILE);
+    strcat(saveFilePath, "\\storage.data");
+#elif defined(PLATFORM_OSX)
+    // Define game absolute save dir path
+    strcpy(saveDirPath, getenv("HOME"));
+    strcat(saveDirPath, "/Library/Application Support/2048");
+
+    // Define game absolute save file path
+    strcpy(saveFilePath, saveDirPath);
+    strcat(saveFilePath, "/storage.data");
+#else
+    #error Platform is undefined
+#endif
+
+    TraceLog(LOG_DEBUG, "Save path: %s", saveFilePath);
 
     LoadSFX(absolutepath);
     LoadFonts(absolutepath);

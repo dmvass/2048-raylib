@@ -15,8 +15,6 @@ TMP_DMG = build/osx/$(PROJECT_NAME).dmg
 TMP_DIR = build/osx/tmp
 OUT_DMG = dist/osx/$(PROJECT_NAME).dmg
 
-RAYLIB_RELEASE_PATH = $(RAYLIB_PATH)/release/libs/osx
-
 # Determine bundle mode (BUNDLE_NONE, BUNDLE_OSX)
 ifndef BUNDLE
 	BUNDLE = BUNDLE_NONE
@@ -29,32 +27,28 @@ else
 	DEBUG = NDEBUG
 endif
 
+
 # Determine PLATFORM_OS in case PLATFORM_DESKTOP selected
 ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     # No uname.exe on MinGW!, but OS=Windows_NT on Windows!
     # ifeq ($(UNAME),Msys) -> Windows
     ifeq ($(OS),Windows_NT)
-        PLATFORM_OS=WINDOWS
+        PLATFORM_OS=PLATFORM_WINDOWS
     else
         UNAMEOS=$(shell uname)
-        ifeq ($(UNAMEOS),Linux)
-            PLATFORM_OS=PLATFORM_LINUX
-        endif
-        ifeq ($(UNAMEOS),FreeBSD)
-            PLATFORM_OS=PLATFORM_BSD
-        endif
-        ifeq ($(UNAMEOS),OpenBSD)
-            PLATFORM_OS=PLATFORM_BSD
-        endif
-        ifeq ($(UNAMEOS),NetBSD)
-            PLATFORM_OS=PLATFORM_BSD
-        endif
-        ifeq ($(UNAMEOS),DragonFly)
-            PLATFORM_OS=PLATFORM_BSD
-        endif
         ifeq ($(UNAMEOS),Darwin)
             PLATFORM_OS=PLATFORM_OSX
         endif
+    endif
+endif
+
+# Define raylib release directory for compiled library
+ifeq ($(PLATFORM),PLATFORM_DESKTOP)
+    ifeq ($(PLATFORM_OS),PLATFORM_WINDOWS)
+        RAYLIB_RELEASE_PATH = $(RAYLIB_PATH)/release/libs/win32/mingw32
+    endif
+    ifeq ($(PLATFORM_OS),PLATFORM_OSX)
+        RAYLIB_RELEASE_PATH = $(RAYLIB_PATH)/release/libs/osx
     endif
 endif
 
@@ -63,6 +57,12 @@ CC = gcc
 
 # Define default make program: make
 MAKE = make
+
+ifeq ($(PLATFORM),PLATFORM_DESKTOP)
+    ifeq ($(PLATFORM_OS),PLATFORM_WINDOWS)
+        MAKE = mingw32-make
+    endif
+endif
 
 # Define compiler flags:
 #  -O1                  defines optimization level
@@ -84,9 +84,18 @@ LDFLAGS = -L. -L$(RAYLIB_RELEASE_PATH) -L$(RAYLIB_PATH)/src
 
 # Define any libraries required on linking
 # if you want to link libraries (libname.so or libname.a), use the -lname
-# Libraries for OSX 10.9 desktop compiling
-# NOTE: Required packages: libopenal-dev libegl1-mesa-dev
-LDLIBS = -framework CoreVideo -framework IOKit -framework Cocoa -framework GLUT -framework OpenGL $(RAYLIB_RELEASE_PATH)/libraylib.a
+
+ifeq ($(PLATFORM),PLATFORM_DESKTOP)
+    ifeq ($(PLATFORM_OS),PLATFORM_WINDOWS)
+        # Libraries for Windows desktop compilation
+        LDLIBS = -lraylib -lopengl32 -lgdi32
+    endif
+    ifeq ($(PLATFORM_OS),PLATFORM_OSX)
+		# Libraries for OSX 10.9 desktop compiling
+		# NOTE: Required packages: libopenal-dev libegl1-mesa-dev
+		LDLIBS = -framework CoreVideo -framework IOKit -framework Cocoa -framework GLUT -framework OpenGL $(RAYLIB_RELEASE_PATH)/libraylib.a
+    endif
+endif
 
 # Define all source files required
 PROJECT_SOURCE_FILES ?= src/main.c \
@@ -119,10 +128,16 @@ $(PROJECT_NAME): $(OBJS)
 
 # Clean everything
 clean:
-	# find . -type f -perm +ugo+x -delete
-	rm -f src/*.o
-	rm -f src/screens/*.o
-	rm -f build/$(PROJECT_NAME)
+ifeq ($(PLATFORM),PLATFORM_DESKTOP)
+    ifeq ($(PLATFORM_OS),PLATFORM_WINDOWS)
+		del *.o *.exe /s
+    endif
+    ifeq ($(PLATFORM_OS),PLATFORM_OSX)
+		rm -f src/*.o
+		rm -f src/screens/*.o
+		rm -f build/$(PROJECT_NAME)
+    endif
+endif
 	@echo Cleaning done
 
 bundle: all

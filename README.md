@@ -31,6 +31,7 @@ further, then the game is lost. The win condition holds precedence over the loss
 ## Platforms
 
 * Mac OS X
+* Windows
 
 ## Documentation
 

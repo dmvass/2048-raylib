@@ -1,4 +1,11 @@
+#if defined(PLATFORM_WINDOWS)
+#include <direct.h>
+#elif defined(PLATFORM_OSX)
 #include <sys/stat.h>  // mkdir, S_IRWXU, S_IRGRP, S_IROTH
+#else
+#error Platform is undefined
+#endif
+
 #include <errno.h>     // errno, EACCES, ENOENT
 #include "raylib.h"    // TraceLog, LOG_DEBUG
 #include "utils.h"
@@ -8,7 +15,11 @@ int MakeSaveDir(char *dirpath)
 {
     errno = 0;
 
+#if defined(PLATFORM_WINDOWS)
+    if(_mkdir(dirpath) != 0)
+#else
     if (mkdir(dirpath, S_IRWXU | S_IRGRP | S_IROTH) != 0)
+#endif
     {
         switch (errno)
         {

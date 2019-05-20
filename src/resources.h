@@ -4,14 +4,6 @@
 #include <sys/param.h>  // PATH_MAX
 #include "raylib.h"
 
-#if defined(PLATFORM_OSX)
-    #define SAVE_DIR   "/Library/Application Support/2048"
-    #define SAVE_FILE  "/storage.data"
-#else
-    #define SAVE_DIR   "/2048"
-    #define SAVE_FILE  "/storage.data"
-#endif
-
 //-------------------------------------------------------------------------------------------------
 // Global Variable Declaration
 //-------------------------------------------------------------------------------------------------

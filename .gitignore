@@ -1,6 +1,7 @@
 # Make staff
 build/
 tmp/
+buildstorage.data
 
 # Ignore compiled binaries
 *.o

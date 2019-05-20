@@ -1,6 +1,5 @@
 #include <stdlib.h>     // realpath
 #include <string.h>     // strlen
-#include <sys/param.h>  // PATH_MAX
 #include "raylib.h"
 #include "game.h"
 #include "resources.h"
@@ -36,8 +35,6 @@ int main(int argc, char **argv)
 {
     // Initialization
     //---------------------------------------------------------------------------------------------
-    char absolutepath[PATH_MAX];
-
     onTransition  = false;
     transFadeOut  = false;
     transAlpha    = 0;
@@ -52,19 +49,11 @@ int main(int argc, char **argv)
     SetTraceLog(LOG_WARNING | LOG_ERROR);
 #endif
 
-    // Define absolute path
-    if (realpath(argv[0], absolutepath) == 0)
-    {
-        TraceLog(LOG_ERROR, "realpath failed");  // error exit
-    }
-
-    TraceLog(LOG_DEBUG, "Realpath: %s", absolutepath);
-
     // Initialize window and game screen
     InitWindow(screenWidth, screenHeight, title);
     InitAudioDevice();
 
-    InitResources(GetDirectoryPath(absolutepath));
+    InitResources(GetDirectoryPath(argv[0]));
 
     InitGame();
     InitGameplayScreen();
